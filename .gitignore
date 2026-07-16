@@ -1,5 +1,10 @@
 .vscode/
 
+# Vendored agent skills (third-party content, not part of this project)
+.agents/
+.claude/
+skills-lock.json
+
 node_modules/
 
 dist/
