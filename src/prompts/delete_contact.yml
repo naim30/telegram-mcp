@@ -1,0 +1,8 @@
+name: delete_contact
+description: >-
+  Remove a user from your Telegram contacts (address book). This does not block
+  them or delete any chat history — it only removes the saved contact entry.
+  Returns { deleted }.
+fields:
+  user:
+    description: The user to remove from contacts, as a @username or id.

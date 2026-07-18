@@ -1,0 +1,18 @@
+name: search_messages
+description: >-
+  Full-text search a single chat's message history for a query string,
+  returning matching messages (newest first) as sanitized summaries. Runs
+  server-side on Telegram. Use this to find a specific message id before
+  editing/deleting/forwarding it, or to pull context on a topic within one
+  conversation.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  query:
+    description: Text to search for within the chat's message history.
+  limit:
+    description: Max matching messages to return, newest first (default 20).

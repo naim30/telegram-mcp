@@ -1,0 +1,20 @@
+name: edit_message
+description: >-
+  Edit the text of a message you previously sent, via its chat and message_id.
+  Only your own messages can be edited, within Telegram's edit time window.
+  Returns the updated message summary.
+fields:
+  parse_mode:
+    description: >-
+      How to interpret formatting in the text: 'md' (Markdown) or 'html'. Omit
+      to send as plain text.
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_id:
+    description: Id of the message to edit — must be one you sent.
+  text:
+    description: New text for the message, 1–4096 characters.

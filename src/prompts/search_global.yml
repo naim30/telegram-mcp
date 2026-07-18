@@ -1,0 +1,12 @@
+name: search_global
+description: >-
+  Search your messages across ALL chats at once (MTProto global search), not
+  limited to a single conversation — use this when you don't know which chat a
+  message is in. For searching within one specific chat, prefer search_messages,
+  which is faster and more precise. Returns a list of matching message summaries,
+  each including its chat_id and sender_id so you can locate it.
+fields:
+  query:
+    description: Text to search for across all your chats.
+  limit:
+    description: Maximum number of messages to return (1–100, default 20).

@@ -1,0 +1,6 @@
+name: get_me
+description: >-
+  Return the logged-in account's own profile — id, first/last name, username,
+  phone. Acts as a connectivity + authorization check: if this succeeds, the
+  configured TELEGRAM_SESSION is valid and the server is talking to Telegram as
+  your user account (not a bot). Takes no arguments.

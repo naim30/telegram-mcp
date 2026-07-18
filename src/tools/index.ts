@@ -1,4 +1,12 @@
-export { GetMe, ListDialogs, ResolveEntity } from "./account.js";
+export {
+  GetMe,
+  ListDialogs,
+  GetEntity,
+  UpdateProfile,
+  SetUsername,
+  SetOnlineStatus,
+  GetUserPhotos,
+} from "./account.js";
 export {
   GetMessages,
   SearchMessages,
@@ -7,5 +15,36 @@ export {
   DeleteMessage,
   ForwardMessage,
   MarkRead,
+  SendReaction,
+  SaveDraft,
+  SearchGlobal,
+  PinMessage,
+  UnpinMessage,
+  GetPinnedMessages,
+  GetMessageReadBy,
+  ListScheduledMessages,
+  DeleteScheduledMessage,
 } from "./messages.js";
-export { SendFile } from "./files.js";
+export { SendFile, DownloadMedia, GetStickerSets } from "./files.js";
+export {
+  GetFullEntity,
+  ListParticipants,
+  JoinChat,
+  LeaveChat,
+  GetAdmins,
+  SetSlowMode,
+  ExportChatInvite,
+  MuteChat,
+  UnmuteChat,
+  ArchiveChat,
+  UnarchiveChat,
+  ListFolders,
+} from "./chats.js";
+export {
+  ListContacts,
+  AddContact,
+  DeleteContact,
+  BlockUser,
+  UnblockUser,
+  GetBlockedUsers,
+} from "./contacts.js";

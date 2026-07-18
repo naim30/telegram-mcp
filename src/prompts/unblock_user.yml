@@ -1,0 +1,7 @@
+name: unblock_user
+description: >-
+  Unblock a user you previously blocked, restoring their ability to message you.
+  Returns { unblocked }.
+fields:
+  user:
+    description: The user to unblock, as a @username or id.

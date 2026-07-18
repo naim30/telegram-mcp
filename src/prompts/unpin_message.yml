@@ -1,0 +1,15 @@
+name: unpin_message
+description: >-
+  Unpin a message in a chat. Pass a message_id to unpin that specific message, or
+  omit it to unpin ALL pinned messages in the chat. Requires permission to pin/
+  unpin. Returns { unpinned, message_id }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_id:
+    description: >-
+      Id of the message to unpin. Omit to unpin every pinned message in the chat.

@@ -1,0 +1,21 @@
+name: save_draft
+description: >-
+  Save (or update) the draft message shown in a chat's input box, without
+  sending it — exactly like typing text into the chat and leaving it there. The
+  draft syncs across all your Telegram devices. Pass an empty `text` to clear an
+  existing draft. Text is stored literally (no Markdown/HTML parsing). Returns
+  { saved, cleared }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  text:
+    description: >-
+      Draft text to store in the chat's input box, 0–4096 characters. Pass an
+      empty string ("") to clear the current draft.
+  reply_to:
+    description: >-
+      Optional id of a message in the same chat that the draft should reply to.

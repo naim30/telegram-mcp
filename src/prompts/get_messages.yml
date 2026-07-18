@@ -1,0 +1,21 @@
+name: get_messages
+description: >-
+  Read recent messages from a chat's history (newest first), as your account
+  sees them — something a bot cannot do. Returns compact, sanitized message
+  summaries (id, date, text, sender, media label, reply target). Paginate
+  backwards with offset_id. Use list_dialogs first to find the chat id if you
+  only have a name.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  limit:
+    description: Max messages to return, newest first (default 20).
+  offset_id:
+    description: >-
+      Return only messages older than this message id — pass the smallest id
+      from a previous page to paginate backwards through history. Omit to start
+      from the latest message.

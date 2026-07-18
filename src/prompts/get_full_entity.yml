@@ -1,0 +1,14 @@
+name: get_full_entity
+description: >-
+  Fetch the FULL profile of a user, group, or channel — including the bio/about
+  text, and (for groups/channels) the member count and admin count. Use this when
+  you need richer context than get_entity, which only returns the shallow
+  identity (id, name, username). Returns a merged summary of the entity plus its
+  extended fields.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.

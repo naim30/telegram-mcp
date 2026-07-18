@@ -1,0 +1,8 @@
+name: leave_chat
+description: >-
+  Leave a group, supergroup, or channel you are a member of. Works for both basic
+  groups and channels/supergroups. Returns { left }. This removes your account
+  from the chat — do it deliberately.
+fields:
+  chat:
+    description: The group/channel to leave (@username or id).

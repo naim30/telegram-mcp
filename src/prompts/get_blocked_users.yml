@@ -1,0 +1,8 @@
+name: get_blocked_users
+description: >-
+  List the users you have blocked. Returns { count, users } where each user is a
+  summary (id, name, username). Read-only — the companion to block_user and
+  unblock_user.
+fields:
+  limit:
+    description: Maximum number of blocked users to return (1–100, default 100).

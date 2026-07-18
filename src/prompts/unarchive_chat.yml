@@ -1,0 +1,11 @@
+name: unarchive_chat
+description: >-
+  Move a chat out of the Archived Chats folder back into your main chat list.
+  Returns { unarchived }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.

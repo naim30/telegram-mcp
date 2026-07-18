@@ -1,0 +1,5 @@
+name: get_sticker_sets
+description: >-
+  List the sticker sets installed on your account. Returns { count, sets } where
+  each set has its id, title, short_name, and sticker count. Read-only.
+fields: {}

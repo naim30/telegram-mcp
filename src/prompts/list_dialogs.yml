@@ -1,0 +1,13 @@
+name: list_dialogs
+description: >-
+  List your conversations (dialogs) — private chats, groups, and channels you
+  are in — most-recently-active first, each with its id, name, type, unread
+  count, and a summary of the last message. This is the primary way to discover
+  chat ids: resolve a name to an id here first, then pass that id (or the
+  @username) to the messaging tools. Numeric ids seen via this call become
+  resolvable for the rest of the session.
+fields:
+  limit:
+    description: >-
+      Max number of conversations to return, most-recent first (default 30).
+      These are your open chats — private DMs, groups, and channels.

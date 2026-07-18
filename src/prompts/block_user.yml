@@ -1,0 +1,7 @@
+name: block_user
+description: >-
+  Block a user so they can no longer message you or see your status. Returns
+  { blocked }. Use unblock_user to reverse it.
+fields:
+  user:
+    description: The user to block, as a @username or id.

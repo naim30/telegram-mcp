@@ -1,0 +1,15 @@
+name: forward_message
+description: >-
+  Forward one or more messages from one chat to another, preserving
+  original-sender attribution. `to` is the destination and `from` is the source;
+  both must be chats your account can access. Returns summaries of the newly
+  created messages in the destination.
+fields:
+  to:
+    description: Destination chat/user — @username or id. Required.
+  from:
+    description: Source chat the messages currently live in — @username or id.
+  message_ids:
+    description: Ids of the messages in `from` to forward.
+  silent:
+    description: When true, forwards without a notification sound.

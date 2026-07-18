@@ -1,0 +1,18 @@
+name: pin_message
+description: >-
+  Pin a message in a chat, group, or channel so it appears at the top for
+  participants. Requires permission to pin in that chat. By default other members
+  are notified; set notify=false to pin silently. Returns { pinned, message_id }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_id:
+    description: Id of the message to pin, in the target chat.
+  notify:
+    description: >-
+      When true (default), notifies chat members about the newly pinned message.
+      When false, pins silently.

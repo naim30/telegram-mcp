@@ -1,0 +1,4 @@
+name: list_folders
+description: >-
+  List your chat folders (dialog filters) with their ids and titles. Read-only.
+fields: {}

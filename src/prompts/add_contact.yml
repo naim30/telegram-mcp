@@ -1,0 +1,16 @@
+name: add_contact
+description: >-
+  Add a user to your Telegram contacts (address book) under a chosen name. The
+  user is identified by @username or id. Returns { added }. Adding a contact is a
+  change to your account state.
+fields:
+  user:
+    description: The user to add, as a @username or id.
+  first_name:
+    description: First name to save the contact under.
+  last_name:
+    description: Optional last name to save the contact under.
+  phone:
+    description: >-
+      Optional phone number (international format). Some users can only be added
+      as a contact by phone number.

@@ -1,0 +1,53 @@
+name: send_file
+description: >-
+  Send a photo, video, audio, or document to a chat from your account. `file`
+  may be a local path or a public URL. The media type is auto-detected from the
+  file: images go as inline photos and videos as inline videos, unless
+  force_document sends the raw uncompressed bytes. For videos, set
+  supports_streaming so they play while downloading. Specialized types:
+  voice_note (waveform voice bubble), video_note (round video message).
+  Optionally reply_to an existing message. Returns the sent message summary with
+  a media label. Telegram enforces a per-file size limit (~2 GB for user
+  accounts).
+fields:
+  parse_mode:
+    description: >-
+      How to interpret formatting in the text: 'md' (Markdown) or 'html'. Omit
+      to send as plain text.
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  file:
+    description: >-
+      The file to send: an absolute local filesystem path, or an HTTP(S) URL
+      that Telegram will download. Images are sent as photos unless
+      force_document is true.
+  caption:
+    description: Optional caption under the file, 0–1024 characters.
+  force_document:
+    description: >-
+      When true, send images/media as an uncompressed file (document) instead of
+      an inline photo/video.
+  supports_streaming:
+    description: >-
+      For videos: mark the file as streamable so it plays and can be seeked while
+      still downloading, instead of requiring a full download first. Only works
+      for streamable formats (MP4/H.264); GramJS throws on unsupported formats
+      like AVI/MKV, so convert those to MP4 first.
+  voice_note:
+    description: >-
+      For audio: send as a voice note (the waveform 'push-to-talk' bubble)
+      instead of a regular audio file.
+  video_note:
+    description: >-
+      For video: send as a video note — the round, circular short-video message.
+      The source should be a square video.
+  reply_to:
+    description: >-
+      Optional id of a message in the same chat to attach this file to as a
+      reply.
+  silent:
+    description: When true, sends without a notification sound.

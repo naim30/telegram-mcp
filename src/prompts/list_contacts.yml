@@ -1,0 +1,6 @@
+name: list_contacts
+description: >-
+  List the users saved in your Telegram address book (contacts). Returns
+  { count, contacts } where each contact is a user summary (id, name, username,
+  phone when available). Read-only.
+fields: {}

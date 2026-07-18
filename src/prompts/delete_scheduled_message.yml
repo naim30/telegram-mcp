@@ -1,0 +1,13 @@
+name: delete_scheduled_message
+description: >-
+  Cancel one or more scheduled messages in a chat before they are sent. Returns
+  { deleted, message_ids }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_ids:
+    description: Ids of the scheduled messages to cancel.

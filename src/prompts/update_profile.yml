@@ -1,0 +1,12 @@
+name: update_profile
+description: >-
+  Update your own account profile — first name, last name, and/or bio (about).
+  Only the fields you pass are changed; omitted fields are left as-is. Returns
+  { updated }.
+fields:
+  first_name:
+    description: New first name (optional).
+  last_name:
+    description: New last name (optional).
+  about:
+    description: New bio / about text, up to 70 characters (optional).

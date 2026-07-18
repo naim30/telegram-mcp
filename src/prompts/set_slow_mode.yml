@@ -1,0 +1,16 @@
+name: set_slow_mode
+description: >-
+  Set the slow-mode delay for a supergroup — the minimum seconds each member must
+  wait between messages. Pass 0 to disable. Requires admin rights. Returns
+  { slow_mode_seconds }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  seconds:
+    description: >-
+      Slow-mode delay in seconds. Telegram accepts 0, 10, 30, 60, 300, 900, 3600.
+      0 disables slow mode.

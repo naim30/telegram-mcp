@@ -1,0 +1,9 @@
+name: join_chat
+description: >-
+  Join a public channel/group by its @username, or a private one via its invite
+  link (t.me/+... or t.me/joinchat/...) or bare invite hash. Returns { joined }.
+  Joining is a visible action taken by your account — do it deliberately.
+fields:
+  chat:
+    description: >-
+      A public @username, or a private invite link / invite hash to join.

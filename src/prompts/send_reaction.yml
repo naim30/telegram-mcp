@@ -1,0 +1,22 @@
+name: send_reaction
+description: >-
+  React to a message with an emoji FROM your own account (MTProto), the same as
+  tapping a reaction in the Telegram app. Pass a single emoji (e.g. '👍', '🔥',
+  '❤️') to set your reaction; omit `emoji` to clear whatever reaction you
+  previously left on that message. Only emoji the chat actually allows will be
+  accepted by Telegram. Returns { ok, message_id, emoji, removed }.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_id:
+    description: Id of the message to react to, in the target chat.
+  emoji:
+    description: >-
+      The emoji to react with (e.g. '👍', '🔥', '❤️'). Omit to remove your
+      existing reaction from the message.
+  big:
+    description: When true, plays the oversized "big" reaction animation.

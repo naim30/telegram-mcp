@@ -1,0 +1,14 @@
+name: get_pinned_messages
+description: >-
+  List the pinned messages in a chat, most recent first. Returns message
+  summaries. Read-only companion to pin_message / unpin_message.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  limit:
+    description: >-
+      Maximum number of pinned messages to return (1–100, default 20).

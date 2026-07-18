@@ -1,0 +1,7 @@
+name: set_online_status
+description: >-
+  Set your account's online presence. offline=false marks you online now;
+  offline=true marks you offline. Returns { offline }.
+fields:
+  offline:
+    description: True to appear offline, false to appear online.

@@ -1,0 +1,9 @@
+name: set_username
+description: >-
+  Set or change your account's public @username. Pass an empty string to remove
+  your current username. Returns { updated, username }. Fails if the username is
+  already taken or invalid.
+fields:
+  username:
+    description: >-
+      The new username (without the leading @). Empty string removes it.

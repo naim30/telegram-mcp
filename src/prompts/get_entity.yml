@@ -1,0 +1,14 @@
+name: get_entity
+description: >-
+  Look up a user, group, or channel by @username or id and return its
+  normalized details (id, type, name/title, username). Use this to confirm a
+  target exists and is reachable before messaging it, or to turn a @username
+  into a stable numeric id. Errors if the entity cannot be found or accessed by
+  this account.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.

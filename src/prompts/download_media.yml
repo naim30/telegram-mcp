@@ -1,0 +1,23 @@
+name: download_media
+description: >-
+  Download the media (photo, video, document, voice note, etc.) attached to a
+  message and save it to a local file. This is the counterpart to send_file — use
+  it to retrieve things people have sent you. Writes the file to disk (under the
+  server's downloads/ folder by default, or an explicit output_path) and returns
+  { downloaded, path, bytes, media_type }. Returns downloaded=false if the message
+  has no downloadable media.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  message_id:
+    description: >-
+      Id of the message whose media should be downloaded, in the target chat.
+  output_path:
+    description: >-
+      Optional absolute path (or filename) to save the file to. When omitted, the
+      file is saved under the server's downloads/ directory using the original
+      filename when available.

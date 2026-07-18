@@ -1,0 +1,29 @@
+name: send_message
+description: >-
+  Send a text message to any chat, group, or user FROM your own account
+  (MTProto). Unlike a bot, this can message people who have never contacted you
+  and post to chats you belong to. Supports Markdown/HTML via parse_mode,
+  threaded replies, and silent delivery. Returns the sent message summary,
+  including its id for later edit/delete/forward. Use responsibly — automating a
+  user account to spam risks an account ban.
+fields:
+  parse_mode:
+    description: >-
+      How to interpret formatting in the text: 'md' (Markdown) or 'html'. Omit
+      to send as plain text.
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  text:
+    description: Message text to send, 1–4096 characters.
+  reply_to:
+    description: Optional id of a message in the same chat to reply to.
+  silent:
+    description: When true, sends without a notification sound.
+  schedule:
+    description: >-
+      Optional Unix timestamp (seconds). When set, the message is scheduled to
+      send automatically at that time instead of immediately.

@@ -1,0 +1,9 @@
+name: get_user_photos
+description: >-
+  List a user's profile photos, most recent first. Returns { count, photos }
+  where each photo has its id and date. Read-only.
+fields:
+  user:
+    description: The user whose profile photos to list (@username or id).
+  limit:
+    description: Maximum number of photos to return (1–100, default 20).

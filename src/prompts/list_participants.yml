@@ -1,0 +1,17 @@
+name: list_participants
+description: >-
+  List the members (participants) of a group or channel, optionally filtered by a
+  search term over their names/usernames. Requires that you can see the member
+  list (some large channels hide it from non-admins). Returns { total, participants }
+  where each participant is a user summary.
+fields:
+  chat:
+    description: >-
+      Target chat/user (required). Accepts a @username (e.g. '@durov'), a
+      numeric id, a string id, or the literal 'me' for your own Saved Messages.
+      Numeric ids resolve reliably only after the entity has been seen this
+      session (e.g. via list_dialogs) — prefer @username when possible.
+  search:
+    description: Optional text to filter participants by name or username.
+  limit:
+    description: Maximum number of participants to return (1–200, default 100).
