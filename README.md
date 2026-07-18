@@ -1,74 +1,76 @@
-<div align="center">
+<h1 align="center">telegram-mcp</h1>
 
-# telegram-mcp
+<p align="center">
+  An MCP server that drives <b>Telegram as your own user account</b> — send, read, search, and manage messages, files, chats, groups, and contacts, straight from any MCP client.
+</p>
 
-**Drive Telegram as your own account from any MCP client — not a bot.**
+<p align="center">
+  <a href="#requirements">Requirements</a> •
+  <a href="#getting-started">Getting started</a> •
+  <a href="#tools">Tools</a> •
+  <a href="#how-it-works">How it works</a> •
+  <a href="#security--safety">Security</a>
+</p>
 
-[![Node.js](https://img.shields.io/badge/node-%E2%89%A522.14-3c873a?style=flat-square)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat-square)](https://www.typescriptlang.org)
-[![MCP](https://img.shields.io/badge/MCP-stdio_server-6f42c1?style=flat-square)](https://modelcontextprotocol.io)
-[![GramJS](https://img.shields.io/badge/GramJS-MTProto-229ED2?style=flat-square)](https://gram.js.org)
+---
 
-</div>
+Most Telegram integrations are **bots** created with BotFather. This one is different: it logs in as **you**, over Telegram's native [MTProto](https://core.telegram.org/mtproto) protocol (via [GramJS](https://gram.js.org/)). Because it acts as your user account, it can do things bots simply cannot — read and search your full history, message people who have never contacted you, join chats, and manage your account.
 
-An [MCP](https://modelcontextprotocol.io) server that connects an AI agent to Telegram through your **real user account** over MTProto (via [GramJS](https://gram.js.org)), authenticated with a saved session string. Because it acts as you and not a bot, it can read and search chat history and message anyone — things the Bot API cannot do.
+It speaks the [Model Context Protocol](https://modelcontextprotocol.io/) over stdio, so it plugs into Claude Desktop, Claude Code, or any MCP-compatible client, exposing **44 tools** across seven domains.
 
-It exposes 11 focused tools over stdio for sending, reading, searching, and managing messages, chats, and files.
+> [!WARNING]
+> This automates a **real user account**, not a bot. Your session string grants full access to that account, and spammy or bulk automation can get it banned. Keep tool actions deliberate and user-initiated.
 
 ## Features
 
-- **You, not a bot** — message people who never contacted you and post to any chat you belong to.
-- **Read & search history** — pull recent messages or full-text search a conversation.
-- **Send anything** — text with Markdown/HTML, replies, files by local path or URL.
-- **Manage messages** — edit, delete (for everyone or just you), and forward across chats.
-- **Discover chats** — list your dialogs with unread counts and resolve `@username` → id.
-- **Safe by default** — returned content is sanitized against prompt injection; the client stays silent on stdout so it never corrupts the protocol stream.
+- **User-account access** — read/search history and message anyone, unlike bots.
+- **44 tools, 7 domains** — account, users, messages, files, chats, groups, contacts.
+- **Read/write permission hints** — every tool is annotated `read` or `write` (MCP `readOnlyHint`), so clients can auto-approve reads and gate writes.
+- **Login once** — an interactive login saves a portable session to a gitignored file; the server reuses it forever. No password or session ever touches your MCP config.
+- **Safe by construction** — returned text is sanitized against prompt injection, and results are compact JSON (never raw, circular GramJS objects).
 
-## Prerequisites
+## Requirements
 
-- **Node.js ≥ 22.14**
-- A Telegram account
-- An `api_id` and `api_hash` from [my.telegram.org/apps](https://my.telegram.org/apps) (these identify the *app*, not your account)
+- [Node.js](https://nodejs.org/) **22.14 or newer**
+- A Telegram account and API credentials (`api_id` + `api_hash`) from [my.telegram.org/apps](https://my.telegram.org/apps)
 
-## Installation
+## Getting started
+
+### 1. Install and build
 
 ```bash
-git clone https://github.com/naim30/telegram-mcp.git
-cd telegram-mcp
 npm install
 npm run build
 ```
 
-## Configuration
+### 2. Configure credentials
 
-Copy the example environment file and add your app credentials:
+Copy the example env file and fill it in:
 
 ```bash
 cp .env.example .env
 ```
 
 | Variable | Required | Description |
-| --- | --- | --- |
+| --- | :---: | --- |
 | `TELEGRAM_API_ID` | yes | App `api_id` from my.telegram.org |
 | `TELEGRAM_API_HASH` | yes | App `api_hash` from my.telegram.org |
-| `TELEGRAM_SESSION` | no* | Session string for your account (optional override — see Login) |
+| `SESSION_PATH` | yes | Directory where the login session file (`.telegram-session`) is stored |
 
-<sub>*You don't normally set this. `npm run login` saves the session to a `.telegram-session` file that the server reads automatically. Set `TELEGRAM_SESSION` only if you'd rather supply the session via the environment (e.g. an MCP-client `env` block).</sub>
+### 3. Log in
 
-## Login
-
-Generate a session once. The script prompts for your phone number, the login code Telegram sends you, and your two-factor password if you have one:
+Run the interactive login once. It prompts for your phone number, the code Telegram sends you, and your two-factor password (if set):
 
 ```bash
 npm run login
 ```
 
-It saves the session to `.telegram-session` in the project root. That's it — the server reads that file automatically on every start, so you never log in again and never touch `.env`. (Prefer env vars? `cat .telegram-session` and set it as `TELEGRAM_SESSION` instead.)
+It saves the session to `.telegram-session` inside `SESSION_PATH` (with owner-only `0600` permissions). The server reads it automatically on every start — you never log in again and never paste the session into any config.
 
-> [!WARNING]
-> The session grants **full access to your account**. Never commit or share it. Both `.env` and `.telegram-session` are gitignored.
+> [!NOTE]
+> `npm run login` needs an interactive terminal. If your shell isn't a real TTY, run the built script directly: `node dist/ops/login.js`.
 
-## Connect to an MCP client
+### 4. Connect an MCP client
 
 Point your client at the built server. Example `.mcp.json`:
 
@@ -82,67 +84,60 @@ Point your client at the built server. Example `.mcp.json`:
       "env": {
         "TELEGRAM_API_ID": "1234567",
         "TELEGRAM_API_HASH": "0123456789abcdef0123456789abcdef",
-        "TELEGRAM_SESSION": "1BQANOTEuMTA..."
+        "SESSION_PATH": "/absolute/path/to/telegram-mcp"
       }
     }
   }
 }
 ```
 
-Values in `env` override `.env`. The server connects to Telegram lazily on the first tool call and reuses one authorized client for its lifetime.
+That's it — ask your client to list your chats, search a conversation, or send a message.
 
 ## Tools
 
-| Tool | Description |
-| --- | --- |
-| `get_me` | Your account profile — doubles as a connectivity/auth check |
-| `list_dialogs` | List your chats (DMs, groups, channels) with unread counts and last message |
-| `resolve_entity` | Look up a user/group/channel by `@username` or id |
-| `get_messages` | Read a chat's recent history, newest first, with pagination |
-| `search_messages` | Full-text search a single chat's history |
-| `send_message` | Send a text message (Markdown/HTML, replies, silent) |
-| `edit_message` | Edit a message you previously sent |
-| `delete_message` | Delete messages for everyone or just your local copy |
-| `forward_message` | Forward messages from one chat to another |
-| `mark_read` | Clear a chat's unread counter |
-| `send_file` | Send a photo or document by local path or URL |
+All 44 tools live in `src/tools/`, one file per domain. Each is either a **read** (safe to auto-approve) or a **write** (mutates your account — gate it).
 
-> [!NOTE]
-> The `chat` argument accepts a `@username`, a numeric id, a string id, or `me` (your Saved Messages). Numeric ids resolve reliably only after the entity has been seen this session — run `list_dialogs` first to warm the cache, or prefer `@username`.
+| Domain | Tools |
+| --- | --- |
+| **account** — your own account | `get_me`, `update_profile`, `set_username`, `set_online_status` |
+| **users** — look up others | `get_entity`, `get_full_entity`, `get_user_photos` |
+| **messages** | `get_messages`, `search_messages`, `search_global`, `get_pinned_messages`, `get_message_read_by`, `send_message`, `edit_message`, `delete_message`, `forward_message`, `send_reaction`, `save_draft`, `mark_read`, `pin_message`, `unpin_message`, `list_scheduled_messages`, `delete_scheduled_message` |
+| **files** — media in/out | `send_file`, `download_media`, `get_sticker_sets` |
+| **chats** — your chat list | `list_dialogs`, `mute_chat`, `unmute_chat`, `archive_chat`, `unarchive_chat`, `list_folders` |
+| **groups** — group/channel management | `list_participants`, `get_admins`, `join_chat`, `leave_chat`, `set_slow_mode`, `export_chat_invite` |
+| **contacts** — address book & blocking | `list_contacts`, `add_contact`, `delete_contact`, `block_user`, `unblock_user`, `get_blocked_users` |
+
+> [!TIP]
+> Chat targets accept an `@username`, a numeric id, a string id, or `'me'` (your Saved Messages). Prefer `@username` — numeric ids resolve reliably only after the entity has been seen this session (e.g. via `list_dialogs`).
 
 ## How it works
 
 ```
-MCP client ──stdio──▶ server.ts ──▶ tool handler ──▶ GramJS client ──▶ Telegram (MTProto)
-                                          │
-                                          └─▶ serialize + sanitize ──▶ JSON result
+MCP client ──stdio/JSON-RPC──▶ server.ts ──▶ tool handler ──▶ getClient() ──▶ GramJS (MTProto)
+                                                    │
+                                              serialize + sanitize
+                                                    │
+                                                    ▼
+                                          compact, safe JSON result
 ```
 
-```
-src/
-  server.ts          Registers all tools, connects the stdio transport
-  login.ts           `npm run login` — interactive session-string generator
-  config/config.ts   Typed environment config (envalid + dotenv)
-  lib/
-    client.ts        Lazy, authorized GramJS client
-    register-tool.ts  Wraps each tool: JSON output, errors → isError
-    sanitize.ts      Strips control/zero-width characters from returned text
-    serialize.ts     Compact, BigInt-safe summaries of GramJS objects
-    fields.ts        Shared zod input fields
-  tools/             account · messages · files (one object per tool)
-```
+- **`server.ts`** registers every tool and connects a `StdioServerTransport`.
+- **`lib/client.ts`** lazily creates one shared, authenticated GramJS client on the first tool call and reuses it for the process lifetime (keeping the entity cache warm).
+- **Tool prose lives in YAML.** Each tool's description and field docs are in `src/prompts/*.yml` (loaded via [promptoro](https://www.npmjs.com/package/promptoro)); the TypeScript holds only types and logic.
+- **Every result is mapped** through `serialize.ts` (compact, BigInt-safe) and `sanitize.ts` (strips control/zero-width characters as a prompt-injection defense) — raw GramJS objects are never returned.
 
-## Scripts
+## Security & safety
+
+- `.env` and `.telegram-session` are **gitignored**. The session string is **full access to your account** — never commit, log, or share it.
+- The login script writes the session file with `0600` (owner read/write only).
+- Tools are annotated `read` vs `write` so your MCP client can auto-approve harmless reads while prompting for anything that changes your account.
+
+## Development
 
 ```bash
-npm run build    # Compile TypeScript to dist/
-npm run login    # Generate a session string
-npm start        # Run the server (needs a valid .env)
+npm run build     # tsc -p . → dist/ (also copies prompt YAML)
+npm start         # run dist/server.js (needs a valid .env)
+npm run login     # regenerate the session string
 ```
 
-> [!CAUTION]
-> This automates a **user** account. Bulk or spammy behavior can get your account limited or banned by Telegram. Keep actions deliberate and user-initiated.
-
-## Acknowledgements
-
-Built on [GramJS](https://gram.js.org) and the [Model Context Protocol SDK](https://github.com/modelcontextprotocol). The content-sanitization approach is adapted from the Telethon-based [chigwell/telegram-mcp](https://github.com/chigwell/telegram-mcp).
+Adding a tool: define it in the file for its group under `src/tools/`, add the matching `src/prompts/<name>.yml`, register it in `src/server.ts`, and rebuild. See `CLAUDE.md` for the full conventions.

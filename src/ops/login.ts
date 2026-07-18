@@ -23,7 +23,7 @@ const ask = async (question: string): Promise<string> => {
 };
 
 async function main() {
-  console.log("\nTelegram MCP, Session Login.\n");
+  console.log("\nTelegram MCP, session login.\n");
 
   const appId = config.TELEGRAM_API_ID;
   const appHash = config.TELEGRAM_API_HASH;
@@ -59,7 +59,7 @@ async function main() {
   await client.disconnect();
   rl.close();
 
-  console.log("\nTelegram MCP, Session Saved.\n");
+  console.log("\nTelegram MCP, session saved.\n");
   process.exit(0);
 }
 

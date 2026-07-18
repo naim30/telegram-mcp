@@ -8,7 +8,7 @@ An MCP server that drives Telegram as the **logged-in user account** over MTProt
 (via [GramJS](https://gram.js.org/)) — **not** a BotFather bot. Auth is a saved
 session string, so it can read/search history and message anyone, which bots can't.
 
-Exposed over **stdio** to MCP clients. 26 tools. See `README.md` for user-facing setup.
+Exposed over **stdio** to MCP clients. 44 tools. See `README.md` for user-facing setup.
 
 ## Commands
 
@@ -30,21 +30,26 @@ src/
   ops/login.ts       `npm run login` — standalone session-string generator
   config/config.ts   envalid + dotenv → typed `config` (api id/hash, session) + rootPath
   lib/
-    client.ts        getClient() lazy singleton GramJS client + resolveChat()
-    register-tool.ts  registerTool(server, tool) + readOnly()/write() annotation helpers + Tool type
+    client.ts        getClient() lazy singleton GramJS client
+    register-tool.ts  registerTool(server, tool) + annotate() annotation helper + Tool type
     prompts.ts       loads tool prose from src/prompts/*.yml via promptoro
     sanitize.ts      strips control/zero-width chars from returned text (prompt-injection defense)
     serialize.ts     compact, BigInt-safe summaries of GramJS objects
-    fields.ts        shared zod fields (chat, user, parse_mode)
-  prompts/*.yml      per-tool name/description/field text (one file per tool)
-  tools/
-    account.ts       get_me, list_dialogs, resolve_entity
-    messages.ts      get_messages, search_messages, search_global, send_message, edit_message,
-                     delete_message, forward_message, mark_read, send_reaction, save_draft,
-                     pin_message, unpin_message
-    files.ts         send_file, download_media
-    chats.ts         get_full_entity, list_participants, join_chat, leave_chat
-    contacts.ts      list_contacts, add_contact, delete_contact, block_user, unblock_user
+  utils/chat.ts      validateChat() — require an explicit chat target (no default)
+  constants.ts       shared literal field VALUES only (e.g. ParseMode); no prose
+  prompts/*.yml      per-tool name/description/field text — ALL field descriptions
+                     live here, including shared ones like `chat`/`user`/`parse_mode`
+  tools/             ONE FILE PER prompts.ts group (same name); tools live in the file matching their group
+    account.ts       get_me, update_profile, set_username, set_online_status  (your own account)
+    users.ts         get_entity, get_full_entity, get_user_photos            (look up others)
+    messages.ts      get_messages, search_messages, search_global, get_pinned_messages,
+                     get_message_read_by, send_message (with `schedule`), edit_message,
+                     delete_message, forward_message, send_reaction, save_draft, mark_read,
+                     pin_message, unpin_message, list_scheduled_messages, delete_scheduled_message
+    files.ts         send_file, download_media, get_sticker_sets
+    chats.ts         list_dialogs, mute_chat, unmute_chat, archive_chat, unarchive_chat, list_folders
+    groups.ts        list_participants, get_admins, join_chat, leave_chat, set_slow_mode, export_chat_invite
+    contacts.ts      list_contacts, add_contact, delete_contact, block_user, unblock_user, get_blocked_users
     index.ts         barrel re-export
 ```
 
@@ -60,30 +65,44 @@ method → result passed through `serialize.ts` (which calls `sanitize.ts`) → 
   - `name`: snake_case (`send_message`).
   - `description`: rich and specific — say *what it does*, *when to use it vs.
     alternatives*, and Telegram-specific caveats. This is how the model picks tools.
-  - `input`: a `z.object({...})`; every field has a `.describe()`.
+  - `input`: a `z.object({...})`; every field's `.describe()` pulls its text from
+    the tool's own YAML — `.describe(fooPrompt.fields.<field>.description)`. **All
+    description prose lives in YAML**, never hard-coded in the `.ts`. This applies
+    even to fields repeated across tools (`chat`, `user`, `parse_mode`): each tool
+    inlines the zod and reads its *own* YAML description. Only shared literal
+    *values* (e.g. the `ParseMode` enum) are factored out, into `constants.ts`.
   - `handler`: `async (args) => unknown`; return plain JSON-safe data.
 - **Never return raw GramJS objects** — they are circular (reference the client) and
   hold big-integer ids. Always map through `summarizeMessage` / `summarizeEntity`.
 - **Sanitize all user-controlled text** (message bodies, names, titles) via
   `sanitizeText` / `sanitizeName` before returning it.
-- **Group by domain** in `src/tools/`, re-export from `index.ts`.
-- **Every tool declares `annotations`** built with the `readOnly(title)` /
-  `write(title, destructive?)` helpers from `lib/register-tool.js`. These set MCP
+- **One file per group.** `src/tools/*.ts` maps 1:1 to the groups in
+  `prompts.ts` (`account`, `users`, `messages`, `files`, `chats`, `groups`,
+  `contacts`) — a tool lives in the file named after its group. Add a new group →
+  add the matching file. Re-export from `index.ts`.
+- **Every tool declares `annotations`** built with the single `annotate(title,
+  access, opts?)` helper from `lib/register-tool.js` — `annotate("X", "read")` or
+  `annotate("X", "write", { destructive?, idempotent? })`. It sets MCP
   `readOnlyHint`/`destructiveHint` so a client (e.g. Claude Desktop) can
-  auto-approve read tools and gate writes. A tool must be *purely* one or the
-  other — never fold a read and a write into one tool, or the gating breaks.
-  Reads: `get_me`, `list_dialogs`, `resolve_entity`, `get_messages`,
-  `search_messages`, `search_global`, `get_full_entity`, `list_participants`,
-  `list_contacts`. Everything else is a write (`delete_message` is also
-  `destructive`; `download_media` is a write because it writes a file to disk).
+  auto-approve read tools and gate writes. Overloads make it a type error to pass
+  write-only opts to a "read", so a tool is *purely* one or the other — never fold
+  a read and a write into one tool, or the gating breaks.
+  Reads (17): `get_me`, `get_entity`, `get_full_entity`, `list_dialogs`,
+  `get_user_photos`, `get_messages`, `search_messages`, `search_global`,
+  `get_pinned_messages`, `get_message_read_by`, `list_scheduled_messages`,
+  `get_sticker_sets`, `list_participants`, `get_admins`, `list_folders`,
+  `list_contacts`, `get_blocked_users`. Everything else is a write
+  (`delete_message` and `delete_scheduled_message` are also `destructive`;
+  `download_media` is a write because it writes a file to disk).
 - Style mirrors the sibling `memora` MCP (see `../Automation/memora`).
 
 ## Adding a tool
 
 1. In the right `src/tools/*.ts`, define `const XInput = z.object({...})`, an
    `async function handleX(input)`, and `export const X = { name, description,
-   input: XInput, handler: handleX, annotations: readOnly("X") }` — use
-   `write("X")` (or `write("X", true)` if destructive) for anything that mutates.
+   input: XInput, handler: handleX, annotations: annotate("X", "read") }` — use
+   `annotate("X", "write")` (or `annotate("X", "write", { destructive: true })`)
+   for anything that mutates.
 2. Re-export `X` from `src/tools/index.ts`.
 3. Register it in `src/server.ts` with `registerTool(server, X)` (the tool object
    carries name/description/input/handler/annotations).

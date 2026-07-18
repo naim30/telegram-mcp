@@ -1,30 +1,34 @@
 import { z } from "zod";
-import { getClient, resolveChat } from "../lib/client.js";
-import { chatField, parseModeField } from "../lib/fields.js";
+import { Api } from "telegram";
+import bigInt from "big-integer";
+import { getClient } from "../lib/client.js";
+import { validateChat } from "../utils/chat.js";
+import { ParseMode } from "../constants.js";
+import { prompts } from "../lib/prompts.js";
+import { annotate } from "../lib/register-tool.js";
 import { summarizeMessage } from "../lib/serialize.js";
 
-// ─── get_messages ─────────────────────────────────────────────────────────────
+// get_messages
+const getMessagesPrompt = prompts.get("get_messages");
 const GetMessagesInput = z.object({
-  chat: chatField,
+  chat: z.union([z.string(), z.number()]).describe(getMessagesPrompt.fields.chat.description),
   limit: z
     .number()
     .int()
     .min(1)
     .max(100)
     .optional()
-    .describe("Max messages to return, newest first (default 20)."),
+    .describe(getMessagesPrompt.fields.limit.description),
   offset_id: z
     .number()
     .int()
     .optional()
-    .describe(
-      "Return only messages older than this message id — pass the smallest id from a previous page to paginate backwards through history. Omit to start from the latest message.",
-    ),
+    .describe(getMessagesPrompt.fields.offset_id.description),
 });
 
 async function handleGetMessages(input: z.infer<typeof GetMessagesInput>) {
   const client = await getClient();
-  const messages = await client.getMessages(resolveChat(input.chat), {
+  const messages = await client.getMessages(validateChat(input.chat), {
     limit: input.limit ?? 20,
     offsetId: input.offset_id ?? 0,
   });
@@ -32,32 +36,30 @@ async function handleGetMessages(input: z.infer<typeof GetMessagesInput>) {
 }
 
 export const GetMessages = {
-  name: "get_messages",
-  description:
-    "Read recent messages from a chat's history (newest first), as your account sees them — something a bot cannot do. Returns compact, sanitized message summaries (id, date, text, sender, media label, reply target). Paginate backwards with offset_id. Use list_dialogs first to find the chat id if you only have a name.",
+  name: getMessagesPrompt.name,
+  description: getMessagesPrompt.description,
   input: GetMessagesInput,
   handler: handleGetMessages,
+  annotations: annotate("Get Messages", "read"),
 };
 
-// ─── search_messages ──────────────────────────────────────────────────────────
+// search_messages
+const searchMessagesPrompt = prompts.get("search_messages");
 const SearchMessagesInput = z.object({
-  chat: chatField,
-  query: z
-    .string()
-    .min(1)
-    .describe("Text to search for within the chat's message history."),
+  chat: z.union([z.string(), z.number()]).describe(searchMessagesPrompt.fields.chat.description),
+  query: z.string().min(1).describe(searchMessagesPrompt.fields.query.description),
   limit: z
     .number()
     .int()
     .min(1)
     .max(100)
     .optional()
-    .describe("Max matching messages to return, newest first (default 20)."),
+    .describe(searchMessagesPrompt.fields.limit.description),
 });
 
 async function handleSearchMessages(input: z.infer<typeof SearchMessagesInput>) {
   const client = await getClient();
-  const messages = await client.getMessages(resolveChat(input.chat), {
+  const messages = await client.getMessages(validateChat(input.chat), {
     search: input.query,
     limit: input.limit ?? 20,
   });
@@ -65,70 +67,78 @@ async function handleSearchMessages(input: z.infer<typeof SearchMessagesInput>) 
 }
 
 export const SearchMessages = {
-  name: "search_messages",
-  description:
-    "Full-text search a single chat's message history for a query string, returning matching messages (newest first) as sanitized summaries. Runs server-side on Telegram. Use this to find a specific message id before editing/deleting/forwarding it, or to pull context on a topic within one conversation.",
+  name: searchMessagesPrompt.name,
+  description: searchMessagesPrompt.description,
   input: SearchMessagesInput,
   handler: handleSearchMessages,
+  annotations: annotate("Search Messages", "read"),
 };
 
-// ─── send_message ─────────────────────────────────────────────────────────────
+// send_message
+const sendMessagePrompt = prompts.get("send_message");
 const SendMessageInput = z.object({
-  chat: chatField,
+  chat: z.union([z.string(), z.number()]).describe(sendMessagePrompt.fields.chat.description),
   text: z
     .string()
     .min(1)
     .max(4096)
-    .describe("Message text to send, 1–4096 characters."),
-  parse_mode: parseModeField,
+    .describe(sendMessagePrompt.fields.text.description),
+  parse_mode: z.enum(ParseMode).optional().describe(sendMessagePrompt.fields.parse_mode.description),
   reply_to: z
     .number()
     .int()
     .optional()
-    .describe("Optional id of a message in the same chat to reply to."),
+    .describe(sendMessagePrompt.fields.reply_to.description),
   silent: z
     .boolean()
     .optional()
-    .describe("When true, sends without a notification sound."),
+    .describe(sendMessagePrompt.fields.silent.description),
+  schedule: z
+    .number()
+    .int()
+    .optional()
+    .describe(sendMessagePrompt.fields.schedule.description),
 });
 
 async function handleSendMessage(input: z.infer<typeof SendMessageInput>) {
   const client = await getClient();
-  const message = await client.sendMessage(resolveChat(input.chat), {
+  const message = await client.sendMessage(validateChat(input.chat), {
     message: input.text,
     parseMode: input.parse_mode,
     replyTo: input.reply_to,
     silent: input.silent,
+    schedule: input.schedule,
   });
   return summarizeMessage(message);
 }
 
 export const SendMessage = {
-  name: "send_message",
-  description:
-    "Send a text message to any chat, group, or user FROM your own account (MTProto). Unlike a bot, this can message people who have never contacted you and post to chats you belong to. Supports Markdown/HTML via parse_mode, threaded replies, and silent delivery. Returns the sent message summary, including its id for later edit/delete/forward. Use responsibly — automating a user account to spam risks an account ban.",
+  name: sendMessagePrompt.name,
+  description: sendMessagePrompt.description,
   input: SendMessageInput,
   handler: handleSendMessage,
+  annotations: annotate("Send Message", "write"),
 };
 
-// ─── edit_message ─────────────────────────────────────────────────────────────
+// edit_message
+const editMessagePrompt = prompts.get("edit_message");
 const EditMessageInput = z.object({
-  chat: chatField,
+  chat: z.union([z.string(), z.number()]).describe(editMessagePrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
-    .describe("Id of the message to edit — must be one you sent."),
+    .describe(editMessagePrompt.fields.message_id.description),
   text: z
     .string()
     .min(1)
     .max(4096)
-    .describe("New text for the message, 1–4096 characters."),
-  parse_mode: parseModeField,
+    .describe(editMessagePrompt.fields.text.description),
+  parse_mode: z.enum(ParseMode).optional().describe(editMessagePrompt.fields.parse_mode.description),
 });
 
 async function handleEditMessage(input: z.infer<typeof EditMessageInput>) {
   const client = await getClient();
-  const message = await client.editMessage(resolveChat(input.chat), {
+  const message = await client.editMessage(validateChat(input.chat), {
     message: input.message_id,
     text: input.text,
     parseMode: input.parse_mode,
@@ -137,60 +147,60 @@ async function handleEditMessage(input: z.infer<typeof EditMessageInput>) {
 }
 
 export const EditMessage = {
-  name: "edit_message",
-  description:
-    "Edit the text of a message you previously sent, via its chat and message_id. Only your own messages can be edited, within Telegram's edit time window. Returns the updated message summary.",
+  name: editMessagePrompt.name,
+  description: editMessagePrompt.description,
   input: EditMessageInput,
   handler: handleEditMessage,
+  annotations: annotate("Edit Message", "write"),
 };
 
-// ─── delete_message ───────────────────────────────────────────────────────────
+// delete_message
+const deleteMessagePrompt = prompts.get("delete_message");
 const DeleteMessageInput = z.object({
-  chat: chatField,
+  chat: z.union([z.string(), z.number()]).describe(deleteMessagePrompt.fields.chat.description),
   message_ids: z
     .array(z.number().int())
     .min(1)
-    .describe("Ids of the messages to delete in the target chat."),
+    .describe(deleteMessagePrompt.fields.message_ids.description),
   revoke: z
     .boolean()
     .optional()
-    .describe(
-      "When true (default), deletes the message for everyone. When false, deletes only your local copy where Telegram allows it.",
-    ),
+    .describe(deleteMessagePrompt.fields.revoke.description),
 });
 
 async function handleDeleteMessage(input: z.infer<typeof DeleteMessageInput>) {
   const client = await getClient();
-  await client.deleteMessages(resolveChat(input.chat), input.message_ids, {
+  await client.deleteMessages(validateChat(input.chat), input.message_ids, {
     revoke: input.revoke ?? true,
   });
   return { deleted: true, message_ids: input.message_ids };
 }
 
 export const DeleteMessage = {
-  name: "delete_message",
-  description:
-    "Delete one or more messages from a chat. With revoke=true (default) they are removed for everyone (subject to Telegram's rules on who/when); revoke=false removes only your local copy. Returns { deleted, message_ids }.",
+  name: deleteMessagePrompt.name,
+  description: deleteMessagePrompt.description,
   input: DeleteMessageInput,
   handler: handleDeleteMessage,
+  annotations: annotate("Delete Message", "write", { destructive: true }),
 };
 
-// ─── forward_message ──────────────────────────────────────────────────────────
+// forward_message
+const forwardMessagePrompt = prompts.get("forward_message");
 const ForwardMessageInput = z.object({
   to: z
     .union([z.string(), z.number()])
-    .describe("Destination chat/user — @username or id. Required."),
+    .describe(forwardMessagePrompt.fields.to.description),
   from: z
     .union([z.string(), z.number()])
-    .describe("Source chat the messages currently live in — @username or id."),
+    .describe(forwardMessagePrompt.fields.from.description),
   message_ids: z
     .array(z.number().int())
     .min(1)
-    .describe("Ids of the messages in `from` to forward."),
+    .describe(forwardMessagePrompt.fields.message_ids.description),
   silent: z
     .boolean()
     .optional()
-    .describe("When true, forwards without a notification sound."),
+    .describe(forwardMessagePrompt.fields.silent.description),
 });
 
 async function handleForwardMessage(input: z.infer<typeof ForwardMessageInput>) {
@@ -204,28 +214,335 @@ async function handleForwardMessage(input: z.infer<typeof ForwardMessageInput>) 
 }
 
 export const ForwardMessage = {
-  name: "forward_message",
-  description:
-    "Forward one or more messages from one chat to another, preserving original-sender attribution. `to` is the destination and `from` is the source; both must be chats your account can access. Returns summaries of the newly created messages in the destination.",
+  name: forwardMessagePrompt.name,
+  description: forwardMessagePrompt.description,
   input: ForwardMessageInput,
   handler: handleForwardMessage,
+  annotations: annotate("Forward Message", "write"),
 };
 
-// ─── mark_read ────────────────────────────────────────────────────────────────
+// mark_read
+const markReadPrompt = prompts.get("mark_read");
 const MarkReadInput = z.object({
-  chat: chatField,
+  chat: z.union([z.string(), z.number()]).describe(markReadPrompt.fields.chat.description),
 });
 
 async function handleMarkRead(input: z.infer<typeof MarkReadInput>) {
   const client = await getClient();
-  const ok = await client.markAsRead(resolveChat(input.chat));
+  const ok = await client.markAsRead(validateChat(input.chat));
   return { marked_read: ok };
 }
 
 export const MarkRead = {
-  name: "mark_read",
-  description:
-    "Mark a chat as read (clear its unread counter) up to the latest message, as your account. Returns { marked_read }.",
+  name: markReadPrompt.name,
+  description: markReadPrompt.description,
   input: MarkReadInput,
   handler: handleMarkRead,
+  annotations: annotate("Mark as Read", "write"),
+};
+
+// send_reaction
+const sendReactionPrompt = prompts.get("send_reaction");
+const SendReactionInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(sendReactionPrompt.fields.chat.description),
+  message_id: z
+    .number()
+    .int()
+    .describe(sendReactionPrompt.fields.message_id.description),
+  emoji: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(sendReactionPrompt.fields.emoji.description),
+  big: z.boolean().optional().describe(sendReactionPrompt.fields.big.description),
+});
+
+async function handleSendReaction(input: z.infer<typeof SendReactionInput>) {
+  const client = await getClient();
+  // Omitting `emoji` (empty reaction list) clears any existing reaction.
+  const reaction = input.emoji
+    ? [new Api.ReactionEmoji({ emoticon: input.emoji })]
+    : [];
+  await client.invoke(
+    new Api.messages.SendReaction({
+      peer: validateChat(input.chat),
+      msgId: input.message_id,
+      reaction,
+      big: input.big,
+    }),
+  );
+  return {
+    ok: true,
+    message_id: input.message_id,
+    emoji: input.emoji ?? null,
+    removed: !input.emoji,
+  };
+}
+
+export const SendReaction = {
+  name: sendReactionPrompt.name,
+  description: sendReactionPrompt.description,
+  input: SendReactionInput,
+  handler: handleSendReaction,
+  annotations: annotate("Send Reaction", "write"),
+};
+
+// save_draft
+const saveDraftPrompt = prompts.get("save_draft");
+const SaveDraftInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(saveDraftPrompt.fields.chat.description),
+  text: z.string().max(4096).describe(saveDraftPrompt.fields.text.description),
+  reply_to: z
+    .number()
+    .int()
+    .optional()
+    .describe(saveDraftPrompt.fields.reply_to.description),
+});
+
+async function handleSaveDraft(input: z.infer<typeof SaveDraftInput>) {
+  const client = await getClient();
+  const replyTo = input.reply_to
+    ? new Api.InputReplyToMessage({ replyToMsgId: input.reply_to })
+    : undefined;
+  await client.invoke(
+    new Api.messages.SaveDraft({
+      peer: validateChat(input.chat),
+      message: input.text,
+      replyTo,
+    }),
+  );
+  return { saved: true, cleared: input.text.length === 0 };
+}
+
+export const SaveDraft = {
+  name: saveDraftPrompt.name,
+  description: saveDraftPrompt.description,
+  input: SaveDraftInput,
+  handler: handleSaveDraft,
+  annotations: annotate("Save Draft", "write"),
+};
+
+// search_global
+const searchGlobalPrompt = prompts.get("search_global");
+const SearchGlobalInput = z.object({
+  query: z
+    .string()
+    .min(1)
+    .describe(searchGlobalPrompt.fields.query.description),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe(searchGlobalPrompt.fields.limit.description),
+});
+
+async function handleSearchGlobal(input: z.infer<typeof SearchGlobalInput>) {
+  const client = await getClient();
+  const res = await client.invoke(
+    new Api.messages.SearchGlobal({
+      q: input.query,
+      filter: new Api.InputMessagesFilterEmpty(),
+      minDate: 0,
+      maxDate: 0,
+      offsetRate: 0,
+      offsetPeer: new Api.InputPeerEmpty(),
+      offsetId: 0,
+      limit: input.limit ?? 20,
+    }),
+  );
+  const messages = (res as { messages?: Api.Message[] }).messages ?? [];
+  return messages.map(summarizeMessage);
+}
+
+export const SearchGlobal = {
+  name: searchGlobalPrompt.name,
+  description: searchGlobalPrompt.description,
+  input: SearchGlobalInput,
+  handler: handleSearchGlobal,
+  annotations: annotate("Search Global", "read"),
+};
+
+// pin_message
+const pinMessagePrompt = prompts.get("pin_message");
+const PinMessageInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(pinMessagePrompt.fields.chat.description),
+  message_id: z
+    .number()
+    .int()
+    .describe(pinMessagePrompt.fields.message_id.description),
+  notify: z
+    .boolean()
+    .optional()
+    .describe(pinMessagePrompt.fields.notify.description),
+});
+
+async function handlePinMessage(input: z.infer<typeof PinMessageInput>) {
+  const client = await getClient();
+  await client.pinMessage(validateChat(input.chat), input.message_id, {
+    notify: input.notify ?? true,
+  });
+  return { pinned: true, message_id: input.message_id };
+}
+
+export const PinMessage = {
+  name: pinMessagePrompt.name,
+  description: pinMessagePrompt.description,
+  input: PinMessageInput,
+  handler: handlePinMessage,
+  annotations: annotate("Pin Message", "write"),
+};
+
+// unpin_message
+const unpinMessagePrompt = prompts.get("unpin_message");
+const UnpinMessageInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(unpinMessagePrompt.fields.chat.description),
+  message_id: z
+    .number()
+    .int()
+    .optional()
+    .describe(unpinMessagePrompt.fields.message_id.description),
+});
+
+async function handleUnpinMessage(input: z.infer<typeof UnpinMessageInput>) {
+  const client = await getClient();
+  const chat = validateChat(input.chat);
+  // Omitting message_id unpins every pinned message in the chat.
+  if (input.message_id === undefined) {
+    await client.unpinMessage(chat);
+  } else {
+    await client.unpinMessage(chat, input.message_id);
+  }
+  return { unpinned: true, message_id: input.message_id ?? "all" };
+}
+
+export const UnpinMessage = {
+  name: unpinMessagePrompt.name,
+  description: unpinMessagePrompt.description,
+  input: UnpinMessageInput,
+  handler: handleUnpinMessage,
+  annotations: annotate("Unpin Message", "write"),
+};
+
+// get_pinned_messages
+const getPinnedMessagesPrompt = prompts.get("get_pinned_messages");
+const GetPinnedMessagesInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(getPinnedMessagesPrompt.fields.chat.description),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe(getPinnedMessagesPrompt.fields.limit.description),
+});
+
+async function handleGetPinnedMessages(
+  input: z.infer<typeof GetPinnedMessagesInput>,
+) {
+  const client = await getClient();
+  const messages = await client.getMessages(validateChat(input.chat), {
+    filter: new Api.InputMessagesFilterPinned(),
+    limit: input.limit ?? 20,
+  });
+  return messages.map(summarizeMessage);
+}
+
+export const GetPinnedMessages = {
+  name: getPinnedMessagesPrompt.name,
+  description: getPinnedMessagesPrompt.description,
+  input: GetPinnedMessagesInput,
+  handler: handleGetPinnedMessages,
+  annotations: annotate("Get Pinned Messages", "read"),
+};
+
+// get_message_read_by
+const getMessageReadByPrompt = prompts.get("get_message_read_by");
+const GetMessageReadByInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(getMessageReadByPrompt.fields.chat.description),
+  message_id: z
+    .number()
+    .int()
+    .describe(getMessageReadByPrompt.fields.message_id.description),
+});
+
+async function handleGetMessageReadBy(
+  input: z.infer<typeof GetMessageReadByInput>,
+) {
+  const client = await getClient();
+  const res = await client.invoke(
+    new Api.messages.GetMessageReadParticipants({
+      peer: validateChat(input.chat),
+      msgId: input.message_id,
+    }),
+  );
+  // Each entry is a ReadParticipantDate { userId, date }.
+  const userIds = (res as { userId?: unknown }[]).map((p) => String(p.userId));
+  return { user_ids: userIds };
+}
+
+export const GetMessageReadBy = {
+  name: getMessageReadByPrompt.name,
+  description: getMessageReadByPrompt.description,
+  input: GetMessageReadByInput,
+  handler: handleGetMessageReadBy,
+  annotations: annotate("Get Message Read By", "read"),
+};
+
+// list_scheduled_messages
+const listScheduledMessagesPrompt = prompts.get("list_scheduled_messages");
+const ListScheduledMessagesInput = z.object({ chat: z.union([z.string(), z.number()]).describe(listScheduledMessagesPrompt.fields.chat.description) });
+
+async function handleListScheduledMessages(
+  input: z.infer<typeof ListScheduledMessagesInput>,
+) {
+  const client = await getClient();
+  const res = await client.invoke(
+    new Api.messages.GetScheduledHistory({
+      peer: validateChat(input.chat),
+      hash: bigInt(0),
+    }),
+  );
+  const messages = (res as { messages?: Api.Message[] }).messages ?? [];
+  return messages.map(summarizeMessage);
+}
+
+export const ListScheduledMessages = {
+  name: listScheduledMessagesPrompt.name,
+  description: listScheduledMessagesPrompt.description,
+  input: ListScheduledMessagesInput,
+  handler: handleListScheduledMessages,
+  annotations: annotate("List Scheduled Messages", "read"),
+};
+
+// delete_scheduled_message
+const deleteScheduledMessagePrompt = prompts.get("delete_scheduled_message");
+const DeleteScheduledMessageInput = z.object({
+  chat: z.union([z.string(), z.number()]).describe(deleteScheduledMessagePrompt.fields.chat.description),
+  message_ids: z
+    .array(z.number().int())
+    .min(1)
+    .describe(deleteScheduledMessagePrompt.fields.message_ids.description),
+});
+
+async function handleDeleteScheduledMessage(
+  input: z.infer<typeof DeleteScheduledMessageInput>,
+) {
+  const client = await getClient();
+  await client.invoke(
+    new Api.messages.DeleteScheduledMessages({
+      peer: validateChat(input.chat),
+      id: input.message_ids,
+    }),
+  );
+  return { deleted: true, message_ids: input.message_ids };
+}
+
+export const DeleteScheduledMessage = {
+  name: deleteScheduledMessagePrompt.name,
+  description: deleteScheduledMessagePrompt.description,
+  input: DeleteScheduledMessageInput,
+  handler: handleDeleteScheduledMessage,
+  annotations: annotate("Delete Scheduled Message", "write", { destructive: true }),
 };

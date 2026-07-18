@@ -1,45 +1,40 @@
-export {
-  GetMe,
-  ListDialogs,
-  GetEntity,
-  UpdateProfile,
-  SetUsername,
-  SetOnlineStatus,
-  GetUserPhotos,
-} from "./account.js";
+export { GetMe, UpdateProfile, SetUsername, SetOnlineStatus } from "./account.js";
+export { GetEntity, GetFullEntity, GetUserPhotos } from "./users.js";
 export {
   GetMessages,
   SearchMessages,
+  SearchGlobal,
+  GetPinnedMessages,
+  GetMessageReadBy,
   SendMessage,
   EditMessage,
   DeleteMessage,
   ForwardMessage,
-  MarkRead,
   SendReaction,
   SaveDraft,
-  SearchGlobal,
+  MarkRead,
   PinMessage,
   UnpinMessage,
-  GetPinnedMessages,
-  GetMessageReadBy,
   ListScheduledMessages,
   DeleteScheduledMessage,
 } from "./messages.js";
 export { SendFile, DownloadMedia, GetStickerSets } from "./files.js";
 export {
-  GetFullEntity,
-  ListParticipants,
-  JoinChat,
-  LeaveChat,
-  GetAdmins,
-  SetSlowMode,
-  ExportChatInvite,
+  ListDialogs,
   MuteChat,
   UnmuteChat,
   ArchiveChat,
   UnarchiveChat,
   ListFolders,
 } from "./chats.js";
+export {
+  ListParticipants,
+  GetAdmins,
+  JoinChat,
+  LeaveChat,
+  SetSlowMode,
+  ExportChatInvite,
+} from "./groups.js";
 export {
   ListContacts,
   AddContact,

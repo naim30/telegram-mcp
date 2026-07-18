@@ -6,14 +6,13 @@ import { registerTool } from "./lib/register-tool.js";
 import {
   // account
   GetMe,
-  GetEntity,
-  GetFullEntity,
-  ListDialogs,
-  GetUserPhotos,
-  // profile
   UpdateProfile,
   SetUsername,
   SetOnlineStatus,
+  // users
+  GetEntity,
+  GetFullEntity,
+  GetUserPhotos,
   // messages
   GetMessages,
   SearchMessages,
@@ -35,25 +34,24 @@ import {
   SendFile,
   DownloadMedia,
   GetStickerSets,
-  // membership
-  ListParticipants,
-  GetAdmins,
-  JoinChat,
-  LeaveChat,
-  // admin
-  SetSlowMode,
-  ExportChatInvite,
-  // chat organization
+  // chats
+  ListDialogs,
   MuteChat,
   UnmuteChat,
   ArchiveChat,
   UnarchiveChat,
   ListFolders,
+  // groups
+  ListParticipants,
+  GetAdmins,
+  JoinChat,
+  LeaveChat,
+  SetSlowMode,
+  ExportChatInvite,
   // contacts
   ListContacts,
   AddContact,
   DeleteContact,
-  // block
   BlockUser,
   UnblockUser,
   GetBlockedUsers,
@@ -63,14 +61,13 @@ const server = new McpServer({ name: "telegram-mcp", version: "0.1.0" });
 
 // account
 registerTool(server, GetMe);
-registerTool(server, GetEntity);
-registerTool(server, GetFullEntity);
-registerTool(server, ListDialogs);
-registerTool(server, GetUserPhotos);
-// profile
 registerTool(server, UpdateProfile);
 registerTool(server, SetUsername);
 registerTool(server, SetOnlineStatus);
+// users
+registerTool(server, GetEntity);
+registerTool(server, GetFullEntity);
+registerTool(server, GetUserPhotos);
 // messages
 registerTool(server, GetMessages);
 registerTool(server, SearchMessages);
@@ -92,25 +89,24 @@ registerTool(server, DeleteScheduledMessage);
 registerTool(server, SendFile);
 registerTool(server, DownloadMedia);
 registerTool(server, GetStickerSets);
-// membership
-registerTool(server, ListParticipants);
-registerTool(server, GetAdmins);
-registerTool(server, JoinChat);
-registerTool(server, LeaveChat);
-// admin
-registerTool(server, SetSlowMode);
-registerTool(server, ExportChatInvite);
-// chat organization
+// chats
+registerTool(server, ListDialogs);
 registerTool(server, MuteChat);
 registerTool(server, UnmuteChat);
 registerTool(server, ArchiveChat);
 registerTool(server, UnarchiveChat);
 registerTool(server, ListFolders);
+// groups
+registerTool(server, ListParticipants);
+registerTool(server, GetAdmins);
+registerTool(server, JoinChat);
+registerTool(server, LeaveChat);
+registerTool(server, SetSlowMode);
+registerTool(server, ExportChatInvite);
 // contacts
 registerTool(server, ListContacts);
 registerTool(server, AddContact);
 registerTool(server, DeleteContact);
-// block
 registerTool(server, BlockUser);
 registerTool(server, UnblockUser);
 registerTool(server, GetBlockedUsers);
@@ -131,6 +127,6 @@ async function main() {
 
 main().catch((err) => {
   const msg = err instanceof Error ? err.stack : String(err);
-  console.log(`\nTelegram MCP, server stopped with error: ${msg}`);
+  console.log(`\nTelegram MCP, server stopped, error: ${msg}`);
   process.exit(1);
 });

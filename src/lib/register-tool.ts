@@ -62,10 +62,10 @@ export function registerTool<Schema extends z.ZodObject<z.ZodRawShape>>(
           content: [{ type: "text", text: data }],
         };
       } catch (err) {
-        const error = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? err.message : String(err);
         return {
           isError: true,
-          content: [{ type: "text", text: error }],
+          content: [{ type: "text", text: msg }],
         };
       }
     },
