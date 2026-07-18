@@ -13,6 +13,9 @@ dist/
 .env
 .env.local
 
+# Saved Telegram session — full account access, never commit
+.telegram-session
+
 *.log
 .DS_Store
 Thumbs.db

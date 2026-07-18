@@ -9,19 +9,21 @@
     "telegram-mcp": "dist/server.js"
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && copyfiles -u 1 \"src/prompts/*.yml\" dist",
     "start": "node dist/server.js",
-    "login": "node dist/login.js"
+    "login": "node dist/ops/login.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "dotenv": "^16.4.5",
     "envalid": "^8.0.0",
+    "promptoro": "^0.2.3",
     "telegram": "^2.26.22",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "copyfiles": "^2.4.1",
     "typescript": "^5.7.2"
   },
   "engines": {

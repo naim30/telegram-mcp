@@ -8,14 +8,14 @@ An MCP server that drives Telegram as the **logged-in user account** over MTProt
 (via [GramJS](https://gram.js.org/)) — **not** a BotFather bot. Auth is a saved
 session string, so it can read/search history and message anyone, which bots can't.
 
-Exposed over **stdio** to MCP clients. 11 tools. See `README.md` for user-facing setup.
+Exposed over **stdio** to MCP clients. 26 tools. See `README.md` for user-facing setup.
 
 ## Commands
 
 ```bash
 npm install
 npm run build     # tsc -p . → dist/
-npm run login     # interactive: phone → code → 2FA, prints TELEGRAM_SESSION
+npm run login     # interactive: phone → code → 2FA, saves .telegram-session
 npm start         # runs dist/server.js (needs a valid .env)
 ```
 
@@ -27,19 +27,24 @@ stdio with JSON-RPC (`initialize` → `notifications/initialized` → `tools/lis
 ```
 src/
   server.ts          registers every tool, connects StdioServerTransport
-  login.ts           `npm run login` — standalone session-string generator
-  config/config.ts   envalid + dotenv → typed `config` (api id/hash, session, default chat)
+  ops/login.ts       `npm run login` — standalone session-string generator
+  config/config.ts   envalid + dotenv → typed `config` (api id/hash, session) + rootPath
   lib/
     client.ts        getClient() lazy singleton GramJS client + resolveChat()
-    register-tool.ts  wraps McpServer.registerTool: JSON-stringifies result, catches errors → isError
+    register-tool.ts  registerTool(server, tool) + readOnly()/write() annotation helpers + Tool type
+    prompts.ts       loads tool prose from src/prompts/*.yml via promptoro
     sanitize.ts      strips control/zero-width chars from returned text (prompt-injection defense)
     serialize.ts     compact, BigInt-safe summaries of GramJS objects
-    fields.ts        shared zod fields (chat, parse_mode)
+    fields.ts        shared zod fields (chat, user, parse_mode)
+  prompts/*.yml      per-tool name/description/field text (one file per tool)
   tools/
     account.ts       get_me, list_dialogs, resolve_entity
-    messages.ts      get_messages, search_messages, send_message, edit_message,
-                     delete_message, forward_message, mark_read
-    files.ts         send_file
+    messages.ts      get_messages, search_messages, search_global, send_message, edit_message,
+                     delete_message, forward_message, mark_read, send_reaction, save_draft,
+                     pin_message, unpin_message
+    files.ts         send_file, download_media
+    chats.ts         get_full_entity, list_participants, join_chat, leave_chat
+    contacts.ts      list_contacts, add_contact, delete_contact, block_user, unblock_user
     index.ts         barrel re-export
 ```
 
@@ -62,16 +67,26 @@ method → result passed through `serialize.ts` (which calls `sanitize.ts`) → 
 - **Sanitize all user-controlled text** (message bodies, names, titles) via
   `sanitizeText` / `sanitizeName` before returning it.
 - **Group by domain** in `src/tools/`, re-export from `index.ts`.
+- **Every tool declares `annotations`** built with the `readOnly(title)` /
+  `write(title, destructive?)` helpers from `lib/register-tool.js`. These set MCP
+  `readOnlyHint`/`destructiveHint` so a client (e.g. Claude Desktop) can
+  auto-approve read tools and gate writes. A tool must be *purely* one or the
+  other — never fold a read and a write into one tool, or the gating breaks.
+  Reads: `get_me`, `list_dialogs`, `resolve_entity`, `get_messages`,
+  `search_messages`, `search_global`, `get_full_entity`, `list_participants`,
+  `list_contacts`. Everything else is a write (`delete_message` is also
+  `destructive`; `download_media` is a write because it writes a file to disk).
 - Style mirrors the sibling `memora` MCP (see `../Automation/memora`).
 
 ## Adding a tool
 
 1. In the right `src/tools/*.ts`, define `const XInput = z.object({...})`, an
-   `async function handleX(input)`, and
-   `export const X = { name, description, input: XInput, handler: handleX }`.
+   `async function handleX(input)`, and `export const X = { name, description,
+   input: XInput, handler: handleX, annotations: readOnly("X") }` — use
+   `write("X")` (or `write("X", true)` if destructive) for anything that mutates.
 2. Re-export `X` from `src/tools/index.ts`.
-3. Register it in `src/server.ts` with
-   `registerTool(server, X.name, X.description, X.input, X.handler)`.
+3. Register it in `src/server.ts` with `registerTool(server, X)` (the tool object
+   carries name/description/input/handler/annotations).
 4. `npm run build`.
 
 ## Gotchas
@@ -84,12 +99,16 @@ method → result passed through `serialize.ts` (which calls `sanitize.ts`) → 
   ids resolve reliably only after the entity is seen this session — `list_dialogs`
   warms the cache. Prefer `@username` when unsure.
 - The client connects **lazily** on first tool call and is reused for the process
-  lifetime. If `TELEGRAM_SESSION` is missing/expired, `getClient()` throws an
+  lifetime. The session is resolved by `loadSession()` (config.ts): the
+  `TELEGRAM_SESSION` env var wins, else the `.telegram-session` file written by
+  `npm run login`. If neither exists (or it's expired), `getClient()` throws an
   actionable error telling the user to run `npm run login`.
 
 ## Secrets & safety
 
-- `.env` is gitignored. `TELEGRAM_SESSION` = **full access to the account** — never
-  log it, print it, or commit it.
+- `.env` **and `.telegram-session`** are gitignored. The session string =
+  **full access to the account** — never log it, print it, or commit it.
+  `npm run login` writes `.telegram-session` with `0o600` perms; the server
+  reads it automatically so users don't paste it into `.env`.
 - This automates a *user* account. Spammy/bulk behavior can get the account banned —
   keep tool actions deliberate and user-initiated.

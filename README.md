@@ -51,23 +51,22 @@ cp .env.example .env
 | --- | --- | --- |
 | `TELEGRAM_API_ID` | yes | App `api_id` from my.telegram.org |
 | `TELEGRAM_API_HASH` | yes | App `api_hash` from my.telegram.org |
-| `TELEGRAM_SESSION` | yes* | Session string for your account (generated below) |
-| `TELEGRAM_DEFAULT_CHAT` | no | Fallback chat (`@username`, id, or `me`) when a tool omits `chat` |
+| `TELEGRAM_SESSION` | no* | Session string for your account (optional override — see Login) |
 
-<sub>*Set `TELEGRAM_SESSION` after running the login step below.</sub>
+<sub>*You don't normally set this. `npm run login` saves the session to a `.telegram-session` file that the server reads automatically. Set `TELEGRAM_SESSION` only if you'd rather supply the session via the environment (e.g. an MCP-client `env` block).</sub>
 
 ## Login
 
-Generate a session string once. The script prompts for your phone number, the login code Telegram sends you, and your two-factor password if you have one:
+Generate a session once. The script prompts for your phone number, the login code Telegram sends you, and your two-factor password if you have one:
 
 ```bash
 npm run login
 ```
 
-Copy the printed string into `.env` as `TELEGRAM_SESSION=...`. That's it — the session is reused on every start, so you never log in again.
+It saves the session to `.telegram-session` in the project root. That's it — the server reads that file automatically on every start, so you never log in again and never touch `.env`. (Prefer env vars? `cat .telegram-session` and set it as `TELEGRAM_SESSION` instead.)
 
 > [!WARNING]
-> The session string grants **full access to your account**. Never commit it or share it. `.env` is already gitignored.
+> The session grants **full access to your account**. Never commit or share it. Both `.env` and `.telegram-session` are gitignored.
 
 ## Connect to an MCP client
 
@@ -83,8 +82,7 @@ Point your client at the built server. Example `.mcp.json`:
       "env": {
         "TELEGRAM_API_ID": "1234567",
         "TELEGRAM_API_HASH": "0123456789abcdef0123456789abcdef",
-        "TELEGRAM_SESSION": "1BQANOTEuMTA...",
-        "TELEGRAM_DEFAULT_CHAT": "me"
+        "TELEGRAM_SESSION": "1BQANOTEuMTA..."
       }
     }
   }
