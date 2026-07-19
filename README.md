@@ -14,16 +14,16 @@
 
 ---
 
-Most Telegram integrations are **bots** created with BotFather. This one is different: it logs in as **you**, over Telegram's native [MTProto](https://core.telegram.org/mtproto) protocol (via [GramJS](https://gram.js.org/)). Because it acts as your user account, it can do things bots simply cannot — read and search your full history, message people who have never contacted you, join chats, and manage your account.
+This MCP server logs in as **your own Telegram account**, over Telegram's native [MTProto](https://core.telegram.org/mtproto) protocol (via [GramJS](https://gram.js.org/)). Acting as your user account, it can read and search your full history, message anyone, join chats, and manage your account — all driven from any MCP client.
 
 It speaks the [Model Context Protocol](https://modelcontextprotocol.io/) over stdio, so it plugs into Claude Desktop, Claude Code, or any MCP-compatible client, exposing **44 tools** across seven domains.
 
 > [!WARNING]
-> This automates a **real user account**, not a bot. Your session string grants full access to that account, and spammy or bulk automation can get it banned. Keep tool actions deliberate and user-initiated.
+> This automates a **real user account**. Your session string grants full access to that account, and spammy or bulk automation can get it banned. Keep tool actions deliberate and user-initiated.
 
 ## Features
 
-- **User-account access** — read/search history and message anyone, unlike bots.
+- **User-account access** — read and search your full history, and message anyone.
 - **44 tools, 7 domains** — account, users, messages, files, chats, groups, contacts.
 - **Read/write permission hints** — every tool is annotated `read` or `write` (MCP `readOnlyHint`), so clients can auto-approve reads and gate writes.
 - **Login once** — an interactive login saves a portable session to a gitignored file; the server reuses it forever. No password or session ever touches your MCP config.
@@ -55,7 +55,7 @@ cp .env.example .env
 | --- | :---: | --- |
 | `TELEGRAM_API_ID` | yes | App `api_id` from my.telegram.org |
 | `TELEGRAM_API_HASH` | yes | App `api_hash` from my.telegram.org |
-| `SESSION_PATH` | yes | Directory where the login session file (`.telegram-session`) is stored |
+| `SESSION_PATH` | no | Directory for the session file (`.telegram-session`). Defaults to the project root |
 
 ### 3. Log in
 
@@ -65,7 +65,7 @@ Run the interactive login once. It prompts for your phone number, the code Teleg
 npm run login
 ```
 
-It saves the session to `.telegram-session` inside `SESSION_PATH` (with owner-only `0600` permissions). The server reads it automatically on every start — you never log in again and never paste the session into any config.
+It saves the session to `.telegram-session` (in `SESSION_PATH`, or the project root by default) with owner-only `0600` permissions. The server reads it automatically on every start — you never log in again and never paste the session into any config.
 
 > [!NOTE]
 > `npm run login` needs an interactive terminal. If your shell isn't a real TTY, run the built script directly: `node dist/ops/login.js`.
@@ -83,8 +83,7 @@ Point your client at the built server. Example `.mcp.json`:
       "args": ["/absolute/path/to/telegram-mcp/dist/server.js"],
       "env": {
         "TELEGRAM_API_ID": "1234567",
-        "TELEGRAM_API_HASH": "0123456789abcdef0123456789abcdef",
-        "SESSION_PATH": "/absolute/path/to/telegram-mcp"
+        "TELEGRAM_API_HASH": "0123456789abcdef0123456789abcdef"
       }
     }
   }
@@ -92,6 +91,9 @@ Point your client at the built server. Example `.mcp.json`:
 ```
 
 That's it — ask your client to list your chats, search a conversation, or send a message.
+
+> [!NOTE]
+> Add `SESSION_PATH` to `env` only if you saved the session outside the project root; otherwise the server finds `.telegram-session` there by default.
 
 ## Tools
 
@@ -112,13 +114,14 @@ All 44 tools live in `src/tools/`, one file per domain. Each is either a **read*
 
 ## How it works
 
-```
-MCP client ──stdio/JSON-RPC──▶ server.ts ──▶ tool handler ──▶ getClient() ──▶ GramJS (MTProto)
-                                                    │
-                                              serialize + sanitize
-                                                    │
-                                                    ▼
-                                          compact, safe JSON result
+```mermaid
+flowchart LR
+    client(["MCP client<br/>Claude Desktop / Code"])
+    client -- "request · stdio / JSON-RPC" --> server["server.ts"]
+    server --> handler["tool handler"]
+    handler -- "getClient()" --> gramjs["GramJS · MTProto<br/>→ Telegram"]
+    gramjs -- "raw result" --> shape["serialize + sanitize"]
+    shape -- "compact, safe JSON" --> client
 ```
 
 - **`server.ts`** registers every tool and connects a `StdioServerTransport`.

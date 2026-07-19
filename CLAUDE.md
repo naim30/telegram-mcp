@@ -5,8 +5,8 @@ Guidance for working in this repo.
 ## What this is
 
 An MCP server that drives Telegram as the **logged-in user account** over MTProto
-(via [GramJS](https://gram.js.org/)) — **not** a BotFather bot. Auth is a saved
-session string, so it can read/search history and message anyone, which bots can't.
+(via [GramJS](https://gram.js.org/)). Auth is a saved session string, so it can
+read/search history and message anyone.
 
 Exposed over **stdio** to MCP clients. 44 tools. See `README.md` for user-facing setup.
 
@@ -28,7 +28,8 @@ stdio with JSON-RPC (`initialize` → `notifications/initialized` → `tools/lis
 src/
   server.ts          registers every tool, connects StdioServerTransport
   ops/login.ts       `npm run login` — standalone session-string generator
-  config/config.ts   envalid + dotenv → typed `config` (api id/hash, session) + rootPath
+  config/config.ts   envalid + dotenv → `config` (api id/hash, SESSION_PATH) + rootPath;
+                     getTelegramSession() reads .telegram-session from telegramSessionPath
   lib/
     client.ts        getClient() lazy singleton GramJS client
     register-tool.ts  registerTool(server, tool) + annotate() annotation helper + Tool type
@@ -75,7 +76,7 @@ method → result passed through `serialize.ts` (which calls `sanitize.ts`) → 
 - **Never return raw GramJS objects** — they are circular (reference the client) and
   hold big-integer ids. Always map through `summarizeMessage` / `summarizeEntity`.
 - **Sanitize all user-controlled text** (message bodies, names, titles) via
-  `sanitizeText` / `sanitizeName` before returning it.
+  `sanitizeText` / `sanitizeLine` before returning it.
 - **One file per group.** `src/tools/*.ts` maps 1:1 to the groups in
   `prompts.ts` (`account`, `users`, `messages`, `files`, `chats`, `groups`,
   `contacts`) — a tool lives in the file named after its group. Add a new group →
@@ -118,10 +119,11 @@ method → result passed through `serialize.ts` (which calls `sanitize.ts`) → 
   ids resolve reliably only after the entity is seen this session — `list_dialogs`
   warms the cache. Prefer `@username` when unsure.
 - The client connects **lazily** on first tool call and is reused for the process
-  lifetime. The session is resolved by `loadSession()` (config.ts): the
-  `TELEGRAM_SESSION` env var wins, else the `.telegram-session` file written by
-  `npm run login`. If neither exists (or it's expired), `getClient()` throws an
-  actionable error telling the user to run `npm run login`.
+  lifetime. The session is loaded by `getTelegramSession()` (config.ts) from the
+  `.telegram-session` file at `telegramSessionPath` — i.e. `SESSION_PATH/.telegram-session`,
+  or the project root when `SESSION_PATH` is unset. There is **no session env var**;
+  `npm run login` writes that file. If it's missing or expired, `getClient()` throws
+  an actionable error telling the user to run `npm run login`.
 
 ## Secrets & safety
 
