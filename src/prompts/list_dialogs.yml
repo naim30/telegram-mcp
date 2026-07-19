@@ -9,5 +9,5 @@ description: >-
 fields:
   limit:
     description: >-
-      Max number of conversations to return, most-recent first (default 30).
+      Max number of conversations to return, most-recent first (default 20).
       These are your open chats — private DMs, groups, and channels.

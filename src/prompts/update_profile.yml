@@ -2,7 +2,7 @@ name: update_profile
 description: >-
   Update your own account profile — first name, last name, and/or bio (about).
   Only the fields you pass are changed; omitted fields are left as-is. Returns
-  { updated }.
+  the updated profile (a summarized user).
 fields:
   first_name:
     description: New first name (optional).

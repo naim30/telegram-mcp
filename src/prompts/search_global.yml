@@ -9,4 +9,4 @@ fields:
   query:
     description: Text to search for across all your chats.
   limit:
-    description: Maximum number of messages to return (1–100, default 20).
+    description: Maximum number of messages to return (default 20).

@@ -1,6 +1,6 @@
 name: get_admins
 description: >-
-  List the administrators of a group or channel. Returns { count, admins } where
+  List the administrators of a group or channel. Returns { admins, total } where
   each admin is a user summary. Read-only companion to list_participants.
 fields:
   chat:
@@ -10,4 +10,4 @@ fields:
       Numeric ids resolve reliably only after the entity has been seen this
       session (e.g. via list_dialogs) — prefer @username when possible.
   limit:
-    description: Maximum number of admins to return (1–200, default 100).
+    description: Maximum number of admins to return (default 20).

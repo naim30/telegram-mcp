@@ -2,7 +2,7 @@ name: pin_message
 description: >-
   Pin a message in a chat, group, or channel so it appears at the top for
   participants. Requires permission to pin in that chat. By default other members
-  are notified; set notify=false to pin silently. Returns { pinned, message_id }.
+  are notified; set notify=false to pin silently. Returns { pinned }.
 fields:
   chat:
     description: >-

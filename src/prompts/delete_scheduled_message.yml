@@ -1,7 +1,7 @@
 name: delete_scheduled_message
 description: >-
   Cancel one or more scheduled messages in a chat before they are sent. Returns
-  { deleted, message_ids }.
+  { deleted }.
 fields:
   chat:
     description: >-

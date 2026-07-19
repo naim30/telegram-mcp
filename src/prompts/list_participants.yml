@@ -14,4 +14,4 @@ fields:
   search:
     description: Optional text to filter participants by name or username.
   limit:
-    description: Maximum number of participants to return (1–200, default 100).
+    description: Maximum number of participants to return (default 20).

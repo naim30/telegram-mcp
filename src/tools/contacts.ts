@@ -175,7 +175,7 @@ async function handleGetBlockedUsers(
   );
   const users = response.users || [];
   return {
-    blocked_users: users.map((u) => summarizeEntity(u)),
+    users: users.map((u) => summarizeEntity(u)),
     count: users.length,
   };
 }

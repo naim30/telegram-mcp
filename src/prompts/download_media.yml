@@ -4,8 +4,8 @@ description: >-
   message and save it to a local file. This is the counterpart to send_file — use
   it to retrieve things people have sent you. Writes the file to disk (under the
   server's downloads/ folder by default, or an explicit output_path) and returns
-  { downloaded, path, bytes, media_type }. Returns downloaded=false if the message
-  has no downloadable media.
+  { downloaded, type, path } on success, or { downloaded: false, reason }
+  when the message has no downloadable media.
 fields:
   chat:
     description: >-

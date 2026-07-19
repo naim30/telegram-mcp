@@ -4,7 +4,7 @@ description: >-
   tapping a reaction in the Telegram app. Pass a single emoji (e.g. '👍', '🔥',
   '❤️') to set your reaction; omit `emoji` to clear whatever reaction you
   previously left on that message. Only emoji the chat actually allows will be
-  accepted by Telegram. Returns { ok, message_id, emoji, removed }.
+  accepted by Telegram. Returns { message_id, emoji, removed }.
 fields:
   chat:
     description: >-

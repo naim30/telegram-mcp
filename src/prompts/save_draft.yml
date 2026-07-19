@@ -4,7 +4,7 @@ description: >-
   sending it — exactly like typing text into the chat and leaving it there. The
   draft syncs across all your Telegram devices. Pass an empty `text` to clear an
   existing draft. Text is stored literally (no Markdown/HTML parsing). Returns
-  { saved, cleared }.
+  { saved }.
 fields:
   chat:
     description: >-

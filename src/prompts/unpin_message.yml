@@ -2,7 +2,7 @@ name: unpin_message
 description: >-
   Unpin a message in a chat. Pass a message_id to unpin that specific message, or
   omit it to unpin ALL pinned messages in the chat. Requires permission to pin/
-  unpin. Returns { unpinned, message_id }.
+  unpin. Returns { unpinned }.
 fields:
   chat:
     description: >-

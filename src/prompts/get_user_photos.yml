@@ -6,4 +6,4 @@ fields:
   user:
     description: The user whose profile photos to list (@username or id).
   limit:
-    description: Maximum number of photos to return (1–100, default 20).
+    description: Maximum number of photos to return (default 20).

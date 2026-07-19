@@ -2,7 +2,7 @@ name: delete_message
 description: >-
   Delete one or more messages from a chat. With revoke=true (default) they are
   removed for everyone (subject to Telegram's rules on who/when); revoke=false
-  removes only your local copy. Returns { deleted, message_ids }.
+  removes only your local copy. Returns { deleted }.
 fields:
   chat:
     description: >-
