@@ -11,26 +11,26 @@ import { summarizeMessage } from "../lib/serialize.js";
 // get_messages
 const getMessagesPrompt = prompts.get("get_messages");
 const GetMessagesInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(getMessagesPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(getMessagesPrompt.fields.chat.description),
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(getMessagesPrompt.fields.limit.description),
   offset_id: z
     .number()
     .int()
-    .optional()
+    .default(0)
     .describe(getMessagesPrompt.fields.offset_id.description),
 });
 
 async function handleGetMessages(input: z.infer<typeof GetMessagesInput>) {
   const client = await getClient();
   const messages = await client.getMessages(validateChat(input.chat), {
-    limit: input.limit ?? 20,
-    offsetId: input.offset_id ?? 0,
+    limit: input.limit,
+    offsetId: input.offset_id,
   });
   return messages.map(summarizeMessage);
 }
@@ -46,22 +46,27 @@ export const GetMessages = {
 // search_messages
 const searchMessagesPrompt = prompts.get("search_messages");
 const SearchMessagesInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(searchMessagesPrompt.fields.chat.description),
-  query: z.string().min(1).describe(searchMessagesPrompt.fields.query.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(searchMessagesPrompt.fields.chat.description),
+  search: z
+    .string()
+    .min(1)
+    .describe(searchMessagesPrompt.fields.search.description),
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(searchMessagesPrompt.fields.limit.description),
 });
 
-async function handleSearchMessages(input: z.infer<typeof SearchMessagesInput>) {
+async function handleSearchMessages(
+  input: z.infer<typeof SearchMessagesInput>,
+) {
   const client = await getClient();
   const messages = await client.getMessages(validateChat(input.chat), {
-    search: input.query,
-    limit: input.limit ?? 20,
+    search: input.search,
+    limit: input.limit,
   });
   return messages.map(summarizeMessage);
 }
@@ -77,13 +82,14 @@ export const SearchMessages = {
 // send_message
 const sendMessagePrompt = prompts.get("send_message");
 const SendMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(sendMessagePrompt.fields.chat.description),
-  text: z
-    .string()
-    .min(1)
-    .max(4096)
-    .describe(sendMessagePrompt.fields.text.description),
-  parse_mode: z.enum(ParseMode).optional().describe(sendMessagePrompt.fields.parse_mode.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(sendMessagePrompt.fields.chat.description),
+  text: z.string().describe(sendMessagePrompt.fields.text.description),
+  parse_mode: z
+    .enum(ParseMode)
+    .optional()
+    .describe(sendMessagePrompt.fields.parse_mode.description),
   reply_to: z
     .number()
     .int()
@@ -123,17 +129,18 @@ export const SendMessage = {
 // edit_message
 const editMessagePrompt = prompts.get("edit_message");
 const EditMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(editMessagePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(editMessagePrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
     .describe(editMessagePrompt.fields.message_id.description),
-  text: z
-    .string()
-    .min(1)
-    .max(4096)
-    .describe(editMessagePrompt.fields.text.description),
-  parse_mode: z.enum(ParseMode).optional().describe(editMessagePrompt.fields.parse_mode.description),
+  text: z.string().describe(editMessagePrompt.fields.text.description),
+  parse_mode: z
+    .enum(ParseMode)
+    .optional()
+    .describe(editMessagePrompt.fields.parse_mode.description),
 });
 
 async function handleEditMessage(input: z.infer<typeof EditMessageInput>) {
@@ -157,23 +164,25 @@ export const EditMessage = {
 // delete_message
 const deleteMessagePrompt = prompts.get("delete_message");
 const DeleteMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(deleteMessagePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(deleteMessagePrompt.fields.chat.description),
   message_ids: z
     .array(z.number().int())
     .min(1)
     .describe(deleteMessagePrompt.fields.message_ids.description),
   revoke: z
     .boolean()
-    .optional()
+    .default(true)
     .describe(deleteMessagePrompt.fields.revoke.description),
 });
 
 async function handleDeleteMessage(input: z.infer<typeof DeleteMessageInput>) {
   const client = await getClient();
   await client.deleteMessages(validateChat(input.chat), input.message_ids, {
-    revoke: input.revoke ?? true,
+    revoke: input.revoke,
   });
-  return { deleted: true, message_ids: input.message_ids };
+  return { deleted: true };
 }
 
 export const DeleteMessage = {
@@ -203,7 +212,9 @@ const ForwardMessageInput = z.object({
     .describe(forwardMessagePrompt.fields.silent.description),
 });
 
-async function handleForwardMessage(input: z.infer<typeof ForwardMessageInput>) {
+async function handleForwardMessage(
+  input: z.infer<typeof ForwardMessageInput>,
+) {
   const client = await getClient();
   const messages = await client.forwardMessages(input.to, {
     messages: input.message_ids,
@@ -224,13 +235,15 @@ export const ForwardMessage = {
 // mark_read
 const markReadPrompt = prompts.get("mark_read");
 const MarkReadInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(markReadPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(markReadPrompt.fields.chat.description),
 });
 
 async function handleMarkRead(input: z.infer<typeof MarkReadInput>) {
   const client = await getClient();
-  const ok = await client.markAsRead(validateChat(input.chat));
-  return { marked_read: ok };
+  const response = await client.markAsRead(validateChat(input.chat));
+  return { marked_read: response };
 }
 
 export const MarkRead = {
@@ -244,7 +257,9 @@ export const MarkRead = {
 // send_reaction
 const sendReactionPrompt = prompts.get("send_reaction");
 const SendReactionInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(sendReactionPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(sendReactionPrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
@@ -254,27 +269,27 @@ const SendReactionInput = z.object({
     .min(1)
     .optional()
     .describe(sendReactionPrompt.fields.emoji.description),
-  big: z.boolean().optional().describe(sendReactionPrompt.fields.big.description),
+  big: z
+    .boolean()
+    .optional()
+    .describe(sendReactionPrompt.fields.big.description),
 });
 
 async function handleSendReaction(input: z.infer<typeof SendReactionInput>) {
   const client = await getClient();
-  // Omitting `emoji` (empty reaction list) clears any existing reaction.
-  const reaction = input.emoji
-    ? [new Api.ReactionEmoji({ emoticon: input.emoji })]
-    : [];
   await client.invoke(
     new Api.messages.SendReaction({
       peer: validateChat(input.chat),
       msgId: input.message_id,
-      reaction,
+      reaction: input.emoji
+        ? [new Api.ReactionEmoji({ emoticon: input.emoji })]
+        : [],
       big: input.big,
     }),
   );
   return {
-    ok: true,
     message_id: input.message_id,
-    emoji: input.emoji ?? null,
+    emoji: input.emoji || null,
     removed: !input.emoji,
   };
 }
@@ -290,7 +305,9 @@ export const SendReaction = {
 // save_draft
 const saveDraftPrompt = prompts.get("save_draft");
 const SaveDraftInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(saveDraftPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(saveDraftPrompt.fields.chat.description),
   text: z.string().max(4096).describe(saveDraftPrompt.fields.text.description),
   reply_to: z
     .number()
@@ -301,17 +318,16 @@ const SaveDraftInput = z.object({
 
 async function handleSaveDraft(input: z.infer<typeof SaveDraftInput>) {
   const client = await getClient();
-  const replyTo = input.reply_to
-    ? new Api.InputReplyToMessage({ replyToMsgId: input.reply_to })
-    : undefined;
   await client.invoke(
     new Api.messages.SaveDraft({
       peer: validateChat(input.chat),
       message: input.text,
-      replyTo,
+      replyTo: input.reply_to
+        ? new Api.InputReplyToMessage({ replyToMsgId: input.reply_to })
+        : undefined,
     }),
   );
-  return { saved: true, cleared: input.text.length === 0 };
+  return { saved: true };
 }
 
 export const SaveDraft = {
@@ -332,15 +348,13 @@ const SearchGlobalInput = z.object({
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(searchGlobalPrompt.fields.limit.description),
 });
 
 async function handleSearchGlobal(input: z.infer<typeof SearchGlobalInput>) {
   const client = await getClient();
-  const res = await client.invoke(
+  const response = await client.invoke(
     new Api.messages.SearchGlobal({
       q: input.query,
       filter: new Api.InputMessagesFilterEmpty(),
@@ -349,10 +363,10 @@ async function handleSearchGlobal(input: z.infer<typeof SearchGlobalInput>) {
       offsetRate: 0,
       offsetPeer: new Api.InputPeerEmpty(),
       offsetId: 0,
-      limit: input.limit ?? 20,
+      limit: input.limit,
     }),
   );
-  const messages = (res as { messages?: Api.Message[] }).messages ?? [];
+  const messages = (response as { messages?: Api.Message[] }).messages || [];
   return messages.map(summarizeMessage);
 }
 
@@ -367,23 +381,25 @@ export const SearchGlobal = {
 // pin_message
 const pinMessagePrompt = prompts.get("pin_message");
 const PinMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(pinMessagePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(pinMessagePrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
     .describe(pinMessagePrompt.fields.message_id.description),
   notify: z
     .boolean()
-    .optional()
+    .default(true)
     .describe(pinMessagePrompt.fields.notify.description),
 });
 
 async function handlePinMessage(input: z.infer<typeof PinMessageInput>) {
   const client = await getClient();
   await client.pinMessage(validateChat(input.chat), input.message_id, {
-    notify: input.notify ?? true,
+    notify: input.notify,
   });
-  return { pinned: true, message_id: input.message_id };
+  return { pinned: true };
 }
 
 export const PinMessage = {
@@ -397,7 +413,9 @@ export const PinMessage = {
 // unpin_message
 const unpinMessagePrompt = prompts.get("unpin_message");
 const UnpinMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(unpinMessagePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(unpinMessagePrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
@@ -408,13 +426,12 @@ const UnpinMessageInput = z.object({
 async function handleUnpinMessage(input: z.infer<typeof UnpinMessageInput>) {
   const client = await getClient();
   const chat = validateChat(input.chat);
-  // Omitting message_id unpins every pinned message in the chat.
-  if (input.message_id === undefined) {
+  if (!input.message_id) {
     await client.unpinMessage(chat);
   } else {
     await client.unpinMessage(chat, input.message_id);
   }
-  return { unpinned: true, message_id: input.message_id ?? "all" };
+  return { unpinned: true };
 }
 
 export const UnpinMessage = {
@@ -428,13 +445,13 @@ export const UnpinMessage = {
 // get_pinned_messages
 const getPinnedMessagesPrompt = prompts.get("get_pinned_messages");
 const GetPinnedMessagesInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(getPinnedMessagesPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(getPinnedMessagesPrompt.fields.chat.description),
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(getPinnedMessagesPrompt.fields.limit.description),
 });
 
@@ -444,7 +461,7 @@ async function handleGetPinnedMessages(
   const client = await getClient();
   const messages = await client.getMessages(validateChat(input.chat), {
     filter: new Api.InputMessagesFilterPinned(),
-    limit: input.limit ?? 20,
+    limit: input.limit,
   });
   return messages.map(summarizeMessage);
 }
@@ -460,7 +477,9 @@ export const GetPinnedMessages = {
 // get_message_read_by
 const getMessageReadByPrompt = prompts.get("get_message_read_by");
 const GetMessageReadByInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(getMessageReadByPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(getMessageReadByPrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
@@ -471,15 +490,13 @@ async function handleGetMessageReadBy(
   input: z.infer<typeof GetMessageReadByInput>,
 ) {
   const client = await getClient();
-  const res = await client.invoke(
+  const response = await client.invoke(
     new Api.messages.GetMessageReadParticipants({
       peer: validateChat(input.chat),
       msgId: input.message_id,
     }),
   );
-  // Each entry is a ReadParticipantDate { userId, date }.
-  const userIds = (res as { userId?: unknown }[]).map((p) => String(p.userId));
-  return { user_ids: userIds };
+  return { user_ids: response.map((p) => String(p.userId)) };
 }
 
 export const GetMessageReadBy = {
@@ -492,19 +509,23 @@ export const GetMessageReadBy = {
 
 // list_scheduled_messages
 const listScheduledMessagesPrompt = prompts.get("list_scheduled_messages");
-const ListScheduledMessagesInput = z.object({ chat: z.union([z.string(), z.number()]).describe(listScheduledMessagesPrompt.fields.chat.description) });
+const ListScheduledMessagesInput = z.object({
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(listScheduledMessagesPrompt.fields.chat.description),
+});
 
 async function handleListScheduledMessages(
   input: z.infer<typeof ListScheduledMessagesInput>,
 ) {
   const client = await getClient();
-  const res = await client.invoke(
+  const response = await client.invoke(
     new Api.messages.GetScheduledHistory({
       peer: validateChat(input.chat),
       hash: bigInt(0),
     }),
   );
-  const messages = (res as { messages?: Api.Message[] }).messages ?? [];
+  const messages = (response as { messages?: Api.Message[] }).messages || [];
   return messages.map(summarizeMessage);
 }
 
@@ -519,7 +540,9 @@ export const ListScheduledMessages = {
 // delete_scheduled_message
 const deleteScheduledMessagePrompt = prompts.get("delete_scheduled_message");
 const DeleteScheduledMessageInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(deleteScheduledMessagePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(deleteScheduledMessagePrompt.fields.chat.description),
   message_ids: z
     .array(z.number().int())
     .min(1)
@@ -536,7 +559,7 @@ async function handleDeleteScheduledMessage(
       id: input.message_ids,
     }),
   );
-  return { deleted: true, message_ids: input.message_ids };
+  return { deleted: true };
 }
 
 export const DeleteScheduledMessage = {
@@ -544,5 +567,7 @@ export const DeleteScheduledMessage = {
   description: deleteScheduledMessagePrompt.description,
   input: DeleteScheduledMessageInput,
   handler: handleDeleteScheduledMessage,
-  annotations: annotate("Delete Scheduled Message", "write", { destructive: true }),
+  annotations: annotate("Delete Scheduled Message", "write", {
+    destructive: true,
+  }),
 };

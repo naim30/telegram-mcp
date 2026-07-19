@@ -1,98 +1,158 @@
 import type { Api } from "telegram";
-import { sanitizeName, sanitizeText } from "./sanitize.js";
+import { sanitizeLine, sanitizeText } from "./sanitize.js";
 
-/**
- * GramJS returns rich class instances that (a) reference the client, so they
- * are circular and cannot be JSON.stringify'd directly, and (b) carry ids as
- * big-integer instances. These helpers extract compact, JSON-safe, sanitized
- * views — matching the reference Telethon server's "structured JSON" approach.
- */
-
-/** Convert a GramJS id-like value (BigInteger, bigint, number) to a string. */
-export function idToString(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  return String(value);
-}
-
-/** A short label describing any media attached to a message ("" if none). */
-export function mediaLabel(msg: Api.Message): string {
-  const media = msg.media;
-  if (!media) return "";
-  const cls = media.className ?? "";
-  if (cls === "MessageMediaPhoto") return "photo";
-  if (cls === "MessageMediaDocument") {
-    const doc = (media as Api.MessageMediaDocument).document as
-      | Api.Document
-      | undefined;
-    const nameAttr = doc?.attributes?.find(
-      (a) => a.className === "DocumentAttributeFilename",
-    ) as Api.DocumentAttributeFilename | undefined;
-    return nameAttr?.fileName ? `document: ${nameAttr.fileName}` : "document";
-  }
-  if (cls === "MessageMediaWebPage") return ""; // link preview, not an attachment
-  if (cls === "MessageMediaGeo") return "geo";
-  if (cls === "MessageMediaContact") return "contact";
-  if (cls === "MessageMediaPoll") return "poll";
-  return cls.replace(/^MessageMedia/, "").toLowerCase() || "media";
-}
-
-/** Compact, sanitized view of a message (empty fields omitted). */
-export function summarizeMessage(msg: Api.Message): Record<string, unknown> {
-  const out: Record<string, unknown> = {
-    id: msg.id,
-    date: msg.date, // unix seconds
-    out: Boolean(msg.out),
-  };
-  const text = msg.message;
-  if (text) out.text = sanitizeText(text);
-
-  const senderId = idToString((msg as { senderId?: unknown }).senderId);
-  if (senderId) out.sender_id = senderId;
-  const chatId = idToString((msg as { chatId?: unknown }).chatId);
-  if (chatId) out.chat_id = chatId;
-
-  const replyToMsgId = msg.replyTo?.replyToMsgId;
-  if (replyToMsgId) out.reply_to_msg_id = replyToMsgId;
-
-  const media = mediaLabel(msg);
-  if (media) out.media = media;
-
-  if (msg.editDate) out.edit_date = msg.editDate;
-  if (msg.views) out.views = msg.views;
-  return out;
-}
-
-/** Compact, sanitized view of a user/chat/channel entity. */
 export function summarizeEntity(
-  entity: Api.User | Api.Chat | Api.Channel | Api.TypeUser | Api.TypeChat,
+  entity: Api.TypeUser | Api.TypeChat,
 ): Record<string, unknown> {
-  const cls = (entity as { className?: string }).className ?? "";
-  const base: Record<string, unknown> = {
-    id: idToString((entity as { id?: unknown }).id),
-    type: cls,
-  };
+  const className = entity.className || "";
 
-  if (cls === "User") {
-    const u = entity as Api.User;
+  if (className === "User") {
+    const data = entity as Api.User;
     return {
-      ...base,
-      type: "user",
-      is_self: Boolean(u.self),
-      bot: Boolean(u.bot),
-      first_name: u.firstName ? sanitizeName(u.firstName) : null,
-      last_name: u.lastName ? sanitizeName(u.lastName) : null,
-      username: u.username ?? null,
-      phone: u.phone ?? null,
+      id: data.id ? String(data.id) : null,
+      type: className,
+      is_self: Boolean(data.self),
+      bot: Boolean(data.bot),
+      first_name: data.firstName ? sanitizeLine(data.firstName) : null,
+      last_name: data.lastName ? sanitizeLine(data.lastName) : null,
+      username: data.username || null,
+      phone: data.phone || null,
+    };
+  } else if (className === "Chat") {
+    const data = entity as Api.Chat;
+    return {
+      id: data.id ? String(data.id) : null,
+      type: className,
+      title: data.title ? sanitizeLine(data.title) : null,
+      participants_count: data.participantsCount || null,
+      date: data.date || null,
+      creator: Boolean(data.creator),
+      left: Boolean(data.left),
+      deactivated: Boolean(data.deactivated),
+    };
+  } else if (className === "Channel") {
+    const data = entity as Api.Channel;
+    return {
+      id: data.id ? String(data.id) : null,
+      type: className,
+      title: data.title ? sanitizeLine(data.title) : null,
+      username: data.username || null,
+      megagroup: Boolean(data.megagroup),
+      broadcast: Boolean(data.broadcast),
+      verified: Boolean(data.verified),
+      restricted: Boolean(data.restricted),
+      scam: Boolean(data.scam),
+      fake: Boolean(data.fake),
+      participants_count: data.participantsCount || null,
+      date: data.date || null,
+    };
+  } else if (className === "ChatForbidden") {
+    const data = entity as Api.ChatForbidden;
+    return {
+      id: data.id ? String(data.id) : null,
+      type: className,
+      title: data.title ? sanitizeLine(data.title) : null,
+      forbidden: true,
+    };
+  } else if (className === "ChannelForbidden") {
+    const data = entity as Api.ChannelForbidden;
+    return {
+      id: data.id ? String(data.id) : null,
+      type: className,
+      title: data.title ? sanitizeLine(data.title) : null,
+      megagroup: Boolean(data.megagroup),
+      broadcast: Boolean(data.broadcast),
+      forbidden: true,
     };
   }
 
-  const c = entity as Api.Chat | Api.Channel;
   return {
-    ...base,
-    type: cls === "Channel" ? (c as Api.Channel).megagroup ? "supergroup" : "channel" : "group",
-    title: (c as { title?: string }).title
-      ? sanitizeName((c as { title?: string }).title)
-      : null,
-    username: (c as { username?: string }).username ?? null,
+    id: entity.id ? String(entity.id) : null,
+    type: className,
   };
+}
+
+export function summarizeMessage(msg: Api.Message): Record<string, unknown> {
+  const response: Record<string, unknown> = {
+    id: msg.id,
+    date: msg.date,
+    out: Boolean(msg.out),
+  };
+  if (msg.message) {
+    response.text = sanitizeText(msg.message);
+  }
+  if (msg.senderId) {
+    response.sender_id = msg.senderId;
+  }
+  if (msg.chatId) {
+    response.chat_id = msg.chatId;
+  }
+  if (msg.viaBotId) {
+    response.via_bot_id = msg.viaBotId;
+  }
+  if (msg.replyTo) {
+    response.reply_to = {
+      reply_to_msg_id: msg.replyTo.replyToMsgId,
+      reply_to_top_id: msg.replyTo.replyToTopId,
+    };
+  }
+  if (msg.fwdFrom) {
+    const fromPeer = msg.fwdFrom.fromId as any;
+    const fromId = fromPeer?.userId || fromPeer?.chatId || fromPeer?.channelId;
+    response.forwarded_from = {
+      from_id: fromId ? String(fromId) : null,
+      from_name: msg.fwdFrom.fromName
+        ? sanitizeLine(msg.fwdFrom.fromName)
+        : null,
+      post_author: msg.fwdFrom.postAuthor
+        ? sanitizeLine(msg.fwdFrom.postAuthor)
+        : null,
+      date: msg.fwdFrom.date,
+    };
+  }
+  if (msg.groupedId) {
+    response.grouped_id = String(msg.groupedId);
+  }
+  if (msg.media) {
+    response.media = msg.media.className;
+  }
+  if (msg.postAuthor) {
+    response.post_author = sanitizeLine(msg.postAuthor);
+  }
+  if (msg.views) {
+    response.views = msg.views;
+  }
+  if (msg.forwards) {
+    response.forwards = msg.forwards;
+  }
+  if (msg.replies?.replies) {
+    response.replies = msg.replies.replies;
+  }
+  if (msg.reactions?.results?.length) {
+    response.reactions = msg.reactions.results.map((item) => {
+      const reaction = item.reaction as any;
+      const reactionId =
+        reaction.emoticon || reaction.documentId ? reaction.documentId : null;
+      return {
+        reaction: reactionId,
+        count: item.count,
+      };
+    });
+  }
+  if (msg.pinned) {
+    response.pinned = true;
+  }
+  if (msg.silent) {
+    response.silent = true;
+  }
+  if (msg.post) {
+    response.post = true;
+  }
+  if (msg.mentioned) {
+    response.mentioned = true;
+  }
+  if (msg.editDate) {
+    response.edit_date = msg.editDate;
+  }
+  return response;
 }

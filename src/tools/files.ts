@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { Api } from "telegram";
+import { getExtension } from "telegram/Utils.js";
 import bigInt from "big-integer";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { getClient } from "../lib/client.js";
 import { validateChat } from "../utils/chat.js";
@@ -9,17 +10,22 @@ import { rootPath } from "../config/config.js";
 import { ParseMode } from "../constants.js";
 import { prompts } from "../lib/prompts.js";
 import { annotate } from "../lib/register-tool.js";
-import { mediaLabel, summarizeMessage } from "../lib/serialize.js";
-import { sanitizeName } from "../lib/sanitize.js";
+import { summarizeMessage } from "../lib/serialize.js";
+import { sanitizeLine } from "../lib/sanitize.js";
 
 // send_file
 const sendFilePrompt = prompts.get("send_file");
 const f = sendFilePrompt.fields;
 const SendFileInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(sendFilePrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(sendFilePrompt.fields.chat.description),
   file: z.string().min(1).describe(f.file.description),
   caption: z.string().max(1024).optional().describe(f.caption.description),
-  parse_mode: z.enum(ParseMode).optional().describe(sendFilePrompt.fields.parse_mode.description),
+  parse_mode: z
+    .enum(ParseMode)
+    .optional()
+    .describe(sendFilePrompt.fields.parse_mode.description),
   force_document: z.boolean().optional().describe(f.force_document.description),
   supports_streaming: z
     .boolean()
@@ -58,7 +64,9 @@ export const SendFile = {
 // download_media
 const downloadMediaPrompt = prompts.get("download_media");
 const DownloadMediaInput = z.object({
-  chat: z.union([z.string(), z.number()]).describe(downloadMediaPrompt.fields.chat.description),
+  chat: z
+    .union([z.string(), z.number()])
+    .describe(downloadMediaPrompt.fields.chat.description),
   message_id: z
     .number()
     .int()
@@ -70,20 +78,10 @@ const DownloadMediaInput = z.object({
     .describe(downloadMediaPrompt.fields.output_path.description),
 });
 
-/** A reasonable default filename for a message's media. */
 function defaultFileName(msg: Api.Message): string {
-  const media = msg.media;
-  if (media?.className === "MessageMediaPhoto") return `photo_${msg.id}.jpg`;
-  if (media?.className === "MessageMediaDocument") {
-    const doc = (media as Api.MessageMediaDocument).document as
-      | Api.Document
-      | undefined;
-    const nameAttr = doc?.attributes?.find(
-      (a) => a.className === "DocumentAttributeFilename",
-    ) as Api.DocumentAttributeFilename | undefined;
-    if (nameAttr?.fileName) return nameAttr.fileName;
-  }
-  return `media_${msg.id}`;
+  const ext = getExtension(msg.media);
+  const dotExt = ext && !ext.startsWith(".") ? `.${ext}` : ext;
+  return `media_${msg.id}${dotExt}`;
 }
 
 async function handleDownloadMedia(input: z.infer<typeof DownloadMediaInput>) {
@@ -92,22 +90,26 @@ async function handleDownloadMedia(input: z.infer<typeof DownloadMediaInput>) {
     ids: input.message_id,
   });
   if (!msg || !msg.media) {
-    return { downloaded: false, reason: "message has no downloadable media" };
+    return {
+      downloaded: false,
+      reason: "error: no downloadable media found",
+    };
   }
 
-  const outPath =
-    input.output_path && isAbsolute(input.output_path)
-      ? input.output_path
-      : join(rootPath, "downloads", input.output_path ?? defaultFileName(msg));
+  const filename = defaultFileName(msg);
+  let outPath;
+  if (input.output_path && isAbsolute(input.output_path)) {
+    outPath = input.output_path;
+  } else {
+    outPath = join(rootPath, "downloads", input.output_path || filename);
+  }
   await mkdir(dirname(outPath), { recursive: true });
 
   await client.downloadMedia(msg, { outputFile: outPath });
-  const { size } = await stat(outPath);
   return {
     downloaded: true,
+    type: msg.media.className,
     path: outPath,
-    bytes: size,
-    media_type: mediaLabel(msg) || "media",
   };
 }
 
@@ -123,20 +125,24 @@ export const DownloadMedia = {
 const getStickerSetsPrompt = prompts.get("get_sticker_sets");
 const GetStickerSetsInput = z.object({});
 
-async function handleGetStickerSets(_input: z.infer<typeof GetStickerSetsInput>) {
+async function handleGetStickerSets(
+  _input: z.infer<typeof GetStickerSetsInput>,
+) {
   const client = await getClient();
-  const res = await client.invoke(
-    new Api.messages.GetAllStickers({ hash: bigInt(0) }),
+  const response = await client.invoke(
+    new Api.messages.GetAllStickers({
+      hash: bigInt(0),
+    }),
   );
-  if (res.className === "messages.AllStickersNotModified") {
-    return { count: 0, sets: [] };
+  if (response.className === "messages.AllStickersNotModified") {
+    return { sets: [], count: 0 };
   }
-  const sets = (res as Api.messages.AllStickers).sets;
+  const sets = response.sets || [];
   return {
     count: sets.length,
     sets: sets.map((s) => ({
       id: String(s.id),
-      title: sanitizeName(s.title),
+      title: sanitizeLine(s.title),
       short_name: s.shortName,
       count: s.count,
     })),

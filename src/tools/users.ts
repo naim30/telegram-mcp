@@ -5,7 +5,7 @@ import { getClient } from "../lib/client.js";
 import { validateChat } from "../utils/chat.js";
 import { prompts } from "../lib/prompts.js";
 import { annotate } from "../lib/register-tool.js";
-import { idToString, summarizeEntity } from "../lib/serialize.js";
+import { summarizeEntity } from "../lib/serialize.js";
 import { sanitizeText } from "../lib/sanitize.js";
 
 // get_entity
@@ -41,35 +41,35 @@ const GetFullEntityInput = z.object({
 async function handleGetFullEntity(input: z.infer<typeof GetFullEntityInput>) {
   const client = await getClient();
   const entity = await client.getEntity(validateChat(input.chat));
+  const className = (entity as { className?: string }).className;
   const base = summarizeEntity(entity);
-  const cls = (entity as { className?: string }).className;
   let extra: Record<string, unknown> = {};
-
-  if (cls === "User") {
+  if (className === "User") {
     const full = await client.invoke(new Api.users.GetFullUser({ id: entity }));
-    const f = full.fullUser;
+    const user = full.fullUser;
     extra = {
-      about: f.about ? sanitizeText(f.about) : null,
-      common_chats_count: f.commonChatsCount ?? 0,
+      about: user.about ? sanitizeText(user.about) : null,
+      common_chats_count: user.commonChatsCount || 0,
     };
-  } else if (cls === "Channel") {
+  } else if (className === "Channel") {
     const full = await client.invoke(
       new Api.channels.GetFullChannel({ channel: entity }),
     );
-    const f = full.fullChat as Api.ChannelFull;
+    const channel = full.fullChat as Api.ChannelFull;
     extra = {
-      about: f.about ? sanitizeText(f.about) : null,
-      participants_count: f.participantsCount ?? null,
-      admins_count: f.adminsCount ?? null,
+      about: channel.about ? sanitizeText(channel.about) : null,
+      participants_count: channel.participantsCount || null,
+      admins_count: channel.adminsCount || null,
     };
-  } else if (cls === "Chat") {
+  } else if (className === "Chat") {
     const full = await client.invoke(
       new Api.messages.GetFullChat({ chatId: (entity as Api.Chat).id }),
     );
-    const f = full.fullChat as Api.ChatFull;
-    extra = { about: f.about ? sanitizeText(f.about) : null };
+    const chat = full.fullChat as Api.ChatFull;
+    extra = {
+      about: chat.about ? sanitizeText(chat.about) : null,
+    };
   }
-
   return { ...base, ...extra };
 }
 
@@ -90,29 +90,30 @@ const GetUserPhotosInput = z.object({
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(getUserPhotosPrompt.fields.limit.description),
 });
 
 async function handleGetUserPhotos(input: z.infer<typeof GetUserPhotosInput>) {
   const client = await getClient();
-  const res = await client.invoke(
+  const response = await client.invoke(
     new Api.photos.GetUserPhotos({
       userId: input.user,
       offset: 0,
       maxId: bigInt(0),
-      limit: input.limit ?? 20,
+      limit: input.limit,
     }),
   );
-  const photos = (res as Api.photos.Photos).photos ?? [];
+  const photos = response.photos || [];
   return {
+    photos: photos.map((item) => {
+      const photo = item as any;
+      return {
+        id: String(photo.id),
+        date: photo.date || null,
+      };
+    }),
     count: photos.length,
-    photos: photos.map((p) => ({
-      id: idToString((p as { id?: unknown }).id),
-      date: (p as { date?: number }).date ?? null,
-    })),
   };
 }
 

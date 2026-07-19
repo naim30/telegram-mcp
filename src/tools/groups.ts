@@ -14,14 +14,12 @@ const ListParticipantsInput = z.object({
     .describe(listParticipantsPrompt.fields.chat.description),
   search: z
     .string()
-    .optional()
+    .default("")
     .describe(listParticipantsPrompt.fields.search.description),
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(200)
-    .optional()
+    .default(20)
     .describe(listParticipantsPrompt.fields.limit.description),
 });
 
@@ -30,12 +28,12 @@ async function handleListParticipants(
 ) {
   const client = await getClient();
   const participants = await client.getParticipants(validateChat(input.chat), {
-    limit: input.limit ?? 100,
-    search: input.search ?? "",
+    limit: input.limit,
+    search: input.search,
   });
   return {
-    total: (participants as { total?: number }).total ?? participants.length,
     participants: participants.map((p) => summarizeEntity(p)),
+    total: participants.total || participants.length,
   };
 }
 
@@ -56,9 +54,7 @@ const GetAdminsInput = z.object({
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(200)
-    .optional()
+    .default(20)
     .describe(getAdminsPrompt.fields.limit.description),
 });
 
@@ -66,11 +62,11 @@ async function handleGetAdmins(input: z.infer<typeof GetAdminsInput>) {
   const client = await getClient();
   const admins = await client.getParticipants(validateChat(input.chat), {
     filter: new Api.ChannelParticipantsAdmins(),
-    limit: input.limit ?? 100,
+    limit: input.limit,
   });
   return {
-    total: (admins as { total?: number }).total ?? admins.length,
     admins: admins.map((a) => summarizeEntity(a)),
+    total: admins.total || admins.length,
   };
 }
 
@@ -95,10 +91,15 @@ async function handleJoinChat(input: z.infer<typeof JoinChatInput>) {
   const raw = String(input.chat);
   // Private invites arrive as t.me/+HASH, t.me/joinchat/HASH, or a bare +HASH.
   const invite = raw.match(/(?:t\.me\/\+|t\.me\/joinchat\/|^\+)([\w-]+)/i);
+  let response;
   if (invite) {
-    await client.invoke(new Api.messages.ImportChatInvite({ hash: invite[1] }));
+    response = await client.invoke(
+      new Api.messages.ImportChatInvite({ hash: invite[1] }),
+    );
   } else {
-    await client.invoke(new Api.channels.JoinChannel({ channel: raw }));
+    response = await client.invoke(
+      new Api.channels.JoinChannel({ channel: raw }),
+    );
   }
   return { joined: true };
 }
@@ -122,8 +123,7 @@ const LeaveChatInput = z.object({
 async function handleLeaveChat(input: z.infer<typeof LeaveChatInput>) {
   const client = await getClient();
   const entity = await client.getEntity(input.chat);
-  if ((entity as { className?: string }).className === "Chat") {
-    // Basic groups aren't channels — leave by removing yourself.
+  if (entity.className === "Chat") {
     await client.invoke(
       new Api.messages.DeleteChatUser({
         chatId: (entity as Api.Chat).id,
@@ -131,7 +131,11 @@ async function handleLeaveChat(input: z.infer<typeof LeaveChatInput>) {
       }),
     );
   } else {
-    await client.invoke(new Api.channels.LeaveChannel({ channel: entity }));
+    await client.invoke(
+      new Api.channels.LeaveChannel({
+        channel: entity,
+      }),
+    );
   }
   return { left: true };
 }
@@ -153,7 +157,6 @@ const SetSlowModeInput = z.object({
   seconds: z
     .number()
     .int()
-    .min(0)
     .describe(setSlowModePrompt.fields.seconds.description),
 });
 
@@ -188,10 +191,13 @@ async function handleExportChatInvite(
   input: z.infer<typeof ExportChatInviteInput>,
 ) {
   const client = await getClient();
-  const res = await client.invoke(
-    new Api.messages.ExportChatInvite({ peer: validateChat(input.chat) }),
+  const response = await client.invoke(
+    new Api.messages.ExportChatInvite({
+      peer: validateChat(input.chat),
+    }),
   );
-  return { link: (res as Api.ChatInviteExported).link };
+  const invite = response as Api.ChatInviteExported;
+  return { link: invite.link };
 }
 
 export const ExportChatInvite = {

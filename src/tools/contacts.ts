@@ -12,16 +12,16 @@ const ListContactsInput = z.object({});
 
 async function handleListContacts(_input: z.infer<typeof ListContactsInput>) {
   const client = await getClient();
-  const res = await client.invoke(
+  const response = await client.invoke(
     new Api.contacts.GetContacts({ hash: bigInt(0) }),
   );
-  if (res.className === "contacts.ContactsNotModified") {
-    return { count: 0, contacts: [] };
+  if (response.className === "contacts.ContactsNotModified") {
+    return { contacts: [], count: 0 };
   }
-  const users = (res as Api.contacts.Contacts).users;
+  const users = response.users || [];
   return {
+    contacts: users.map((item) => summarizeEntity(item)),
     count: users.length,
-    contacts: users.map((u) => summarizeEntity(u as Api.User)),
   };
 }
 
@@ -85,7 +85,11 @@ const DeleteContactInput = z.object({
 
 async function handleDeleteContact(input: z.infer<typeof DeleteContactInput>) {
   const client = await getClient();
-  await client.invoke(new Api.contacts.DeleteContacts({ id: [input.user] }));
+  await client.invoke(
+    new Api.contacts.DeleteContacts({
+      id: [input.user],
+    }),
+  );
   return { deleted: true };
 }
 
@@ -107,7 +111,11 @@ const BlockUserInput = z.object({
 
 async function handleBlockUser(input: z.infer<typeof BlockUserInput>) {
   const client = await getClient();
-  await client.invoke(new Api.contacts.Block({ id: input.user }));
+  await client.invoke(
+    new Api.contacts.Block({
+      id: input.user,
+    }),
+  );
   return { blocked: true };
 }
 
@@ -129,7 +137,11 @@ const UnblockUserInput = z.object({
 
 async function handleUnblockUser(input: z.infer<typeof UnblockUserInput>) {
   const client = await getClient();
-  await client.invoke(new Api.contacts.Unblock({ id: input.user }));
+  await client.invoke(
+    new Api.contacts.Unblock({
+      id: input.user,
+    }),
+  );
   return { unblocked: true };
 }
 
@@ -147,9 +159,7 @@ const GetBlockedUsersInput = z.object({
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(100)
-    .optional()
+    .default(20)
     .describe(getBlockedUsersPrompt.fields.limit.description),
 });
 
@@ -157,11 +167,17 @@ async function handleGetBlockedUsers(
   input: z.infer<typeof GetBlockedUsersInput>,
 ) {
   const client = await getClient();
-  const res = await client.invoke(
-    new Api.contacts.GetBlocked({ offset: 0, limit: input.limit ?? 100 }),
+  const response = await client.invoke(
+    new Api.contacts.GetBlocked({
+      offset: 0,
+      limit: input.limit,
+    }),
   );
-  const users = (res as Api.contacts.Blocked).users ?? [];
-  return { count: users.length, users: users.map((u) => summarizeEntity(u)) };
+  const users = response.users || [];
+  return {
+    blocked_users: users.map((u) => summarizeEntity(u)),
+    count: users.length,
+  };
 }
 
 export const GetBlockedUsers = {

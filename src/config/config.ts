@@ -11,7 +11,10 @@ export const config = cleanEnv(process.env, {
   TELEGRAM_API_ID: num(),
   TELEGRAM_API_HASH: str(),
 
-  SESSION_PATH: str(),
+  SESSION_PATH: str({
+    default: "",
+    devDefault: "",
+  }),
 });
 
 export const telegramSessionPath = config.SESSION_PATH

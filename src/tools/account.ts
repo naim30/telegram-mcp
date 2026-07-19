@@ -11,8 +11,8 @@ const GetMeInput = z.object({});
 
 async function handleGetMe(_input: z.infer<typeof GetMeInput>) {
   const client = await getClient();
-  const me = await client.getMe();
-  return summarizeEntity(me as Api.User);
+  const user = await client.getMe();
+  return summarizeEntity(user);
 }
 
 export const GetMe = {
@@ -43,14 +43,14 @@ const UpdateProfileInput = z.object({
 
 async function handleUpdateProfile(input: z.infer<typeof UpdateProfileInput>) {
   const client = await getClient();
-  await client.invoke(
+  const user = await client.invoke(
     new Api.account.UpdateProfile({
       firstName: input.first_name,
       lastName: input.last_name,
       about: input.about,
     }),
   );
-  return { updated: true };
+  return summarizeEntity(user);
 }
 
 export const UpdateProfile = {
@@ -69,10 +69,12 @@ const SetUsernameInput = z.object({
 
 async function handleSetUsername(input: z.infer<typeof SetUsernameInput>) {
   const client = await getClient();
-  await client.invoke(
-    new Api.account.UpdateUsername({ username: input.username }),
+  const user = await client.invoke(
+    new Api.account.UpdateUsername({
+      username: input.username,
+    }),
   );
-  return { updated: true, username: input.username || null };
+  return summarizeEntity(user);
 }
 
 export const SetUsername = {
@@ -95,8 +97,12 @@ async function handleSetOnlineStatus(
   input: z.infer<typeof SetOnlineStatusInput>,
 ) {
   const client = await getClient();
-  await client.invoke(new Api.account.UpdateStatus({ offline: input.offline }));
-  return { offline: input.offline };
+  const response = await client.invoke(
+    new Api.account.UpdateStatus({
+      offline: input.offline,
+    }),
+  );
+  return { offline: response };
 }
 
 export const SetOnlineStatus = {

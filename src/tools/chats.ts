@@ -4,8 +4,8 @@ import { getClient } from "../lib/client.js";
 import { validateChat } from "../utils/chat.js";
 import { prompts } from "../lib/prompts.js";
 import { annotate } from "../lib/register-tool.js";
-import { idToString, summarizeMessage } from "../lib/serialize.js";
-import { sanitizeName } from "../lib/sanitize.js";
+import { summarizeMessage } from "../lib/serialize.js";
+import { sanitizeLine } from "../lib/sanitize.js";
 
 // list_dialogs
 const listDialogsPrompt = prompts.get("list_dialogs");
@@ -13,22 +13,22 @@ const ListDialogsInput = z.object({
   limit: z
     .number()
     .int()
-    .min(1)
-    .max(200)
-    .optional()
+    .default(20)
     .describe(listDialogsPrompt.fields.limit.description),
 });
 
 async function handleListDialogs(input: z.infer<typeof ListDialogsInput>) {
   const client = await getClient();
-  const dialogs = await client.getDialogs({ limit: input.limit ?? 30 });
-  return dialogs.map((d) => ({
-    id: idToString(d.id),
-    name: d.name ? sanitizeName(d.name) : d.title ? sanitizeName(d.title) : null,
-    type: d.isUser ? "user" : d.isChannel ? "channel" : "group",
-    unread_count: d.unreadCount,
-    pinned: Boolean(d.pinned),
-    last_message: d.message ? summarizeMessage(d.message) : null,
+  const response = await client.getDialogs({
+    limit: input.limit,
+  });
+  return response.map((item) => ({
+    id: item.id ? String(item.id) : null,
+    type: item.entity?.className,
+    name: item.name ? sanitizeLine(item.name) : null,
+    unread_count: item.unreadCount,
+    pinned: Boolean(item.pinned),
+    message: item.message ? summarizeMessage(item.message) : null,
   }));
 }
 
@@ -40,23 +40,7 @@ export const ListDialogs = {
   annotations: annotate("List Dialogs", "read"),
 };
 
-// mute_chat / unmute_chat
-// muteUntil = max int32 means "muted forever"; 0 clears the mute.
-const MUTE_FOREVER = 2147483647;
-
-async function setMute(chat: string | number | undefined, mute: boolean) {
-  const client = await getClient();
-  const peer = await client.getInputEntity(validateChat(chat));
-  await client.invoke(
-    new Api.account.UpdateNotifySettings({
-      peer: new Api.InputNotifyPeer({ peer }),
-      settings: new Api.InputPeerNotifySettings({
-        muteUntil: mute ? MUTE_FOREVER : 0,
-      }),
-    }),
-  );
-}
-
+// mute_chat
 const muteChatPrompt = prompts.get("mute_chat");
 const MuteChatInput = z.object({
   chat: z
@@ -65,7 +49,16 @@ const MuteChatInput = z.object({
 });
 
 async function handleMuteChat(input: z.infer<typeof MuteChatInput>) {
-  await setMute(input.chat, true);
+  const client = await getClient();
+  const peer = await client.getInputEntity(validateChat(input.chat));
+  await client.invoke(
+    new Api.account.UpdateNotifySettings({
+      peer: new Api.InputNotifyPeer({ peer }),
+      settings: new Api.InputPeerNotifySettings({
+        muteUntil: 2147483647,
+      }),
+    }),
+  );
   return { muted: true };
 }
 
@@ -77,6 +70,7 @@ export const MuteChat = {
   annotations: annotate("Mute Chat", "write"),
 };
 
+// unmute_chat
 const unmuteChatPrompt = prompts.get("unmute_chat");
 const UnmuteChatInput = z.object({
   chat: z
@@ -85,7 +79,16 @@ const UnmuteChatInput = z.object({
 });
 
 async function handleUnmuteChat(input: z.infer<typeof UnmuteChatInput>) {
-  await setMute(input.chat, false);
+  const client = await getClient();
+  const peer = await client.getInputEntity(validateChat(input.chat));
+  await client.invoke(
+    new Api.account.UpdateNotifySettings({
+      peer: new Api.InputNotifyPeer({ peer }),
+      settings: new Api.InputPeerNotifySettings({
+        muteUntil: 0,
+      }),
+    }),
+  );
   return { unmuted: true };
 }
 
@@ -97,18 +100,7 @@ export const UnmuteChat = {
   annotations: annotate("Unmute Chat", "write"),
 };
 
-// archive_chat / unarchive_chat
-// Folder id 1 is the Archived Chats folder; 0 is the main list.
-async function setFolder(chat: string | number | undefined, folderId: number) {
-  const client = await getClient();
-  const peer = await client.getInputEntity(validateChat(chat));
-  await client.invoke(
-    new Api.folders.EditPeerFolders({
-      folderPeers: [new Api.InputFolderPeer({ peer, folderId })],
-    }),
-  );
-}
-
+// archive_chat
 const archiveChatPrompt = prompts.get("archive_chat");
 const ArchiveChatInput = z.object({
   chat: z
@@ -117,7 +109,18 @@ const ArchiveChatInput = z.object({
 });
 
 async function handleArchiveChat(input: z.infer<typeof ArchiveChatInput>) {
-  await setFolder(input.chat, 1);
+  const client = await getClient();
+  const peer = await client.getInputEntity(validateChat(input.chat));
+  await client.invoke(
+    new Api.folders.EditPeerFolders({
+      folderPeers: [
+        new Api.InputFolderPeer({
+          peer,
+          folderId: 1,
+        }),
+      ],
+    }),
+  );
   return { archived: true };
 }
 
@@ -129,6 +132,7 @@ export const ArchiveChat = {
   annotations: annotate("Archive Chat", "write"),
 };
 
+// unarchive_chat
 const unarchiveChatPrompt = prompts.get("unarchive_chat");
 const UnarchiveChatInput = z.object({
   chat: z
@@ -137,7 +141,18 @@ const UnarchiveChatInput = z.object({
 });
 
 async function handleUnarchiveChat(input: z.infer<typeof UnarchiveChatInput>) {
-  await setFolder(input.chat, 0);
+  const client = await getClient();
+  const peer = await client.getInputEntity(validateChat(input.chat));
+  await client.invoke(
+    new Api.folders.EditPeerFolders({
+      folderPeers: [
+        new Api.InputFolderPeer({
+          peer,
+          folderId: 0,
+        }),
+      ],
+    }),
+  );
   return { unarchived: true };
 }
 
@@ -155,18 +170,14 @@ const ListFoldersInput = z.object({});
 
 async function handleListFolders(_input: z.infer<typeof ListFoldersInput>) {
   const client = await getClient();
-  const res = await client.invoke(new Api.messages.GetDialogFilters());
-  const filters = (res as { filters?: unknown[] }).filters ?? [];
-  return filters.map((f) => {
-    const title = (f as { title?: unknown }).title;
-    const titleText =
-      typeof title === "string"
-        ? title
-        : (title as { text?: string })?.text ?? null;
+  const response = await client.invoke(new Api.messages.GetDialogFilters());
+  const folders = response.filters || [];
+  return folders.map((item) => {
+    const folder = item as any;
     return {
-      id: (f as { id?: number }).id ?? null,
-      title: titleText ? sanitizeName(titleText) : null,
-      type: (f as { className?: string }).className ?? null,
+      id: folder.id || null,
+      title: folder.title?.text ? sanitizeLine(folder.title?.text) : null,
+      type: folder.className || null,
     };
   });
 }
